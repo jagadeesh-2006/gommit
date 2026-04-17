@@ -2,21 +2,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/jagadeesh-2006/gommit/internals/config"
+	// "github.com/jagadeesh-2006/gommit/internals/config"
+	"github.com/jagadeesh-2006/gommit/internals/git"
 )
 
 func main() {
 	
-	// quick test in main.go temporarily
-	cfg := &config.Config{
-		Version:     "1",
-		Provider:    "anthropic",
-		Model:       "claude-3-5-sonnet",
-		APIKey:      "test-key",
-		CommitStyle: "conventional",
+	diff , err := git.Diff()
+	if(err!= nil) {
+		fmt.Println("Error running git diff:", err)
+		return
 	}
-	config.Save(cfg)
+	fmt.Println("Git Diff Output:")
+	fmt.Println(diff)
+	
 
-	loaded, _ := config.Load()
-	fmt.Println(loaded.Provider) // should print "anthropic"
 }
