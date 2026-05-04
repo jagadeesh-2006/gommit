@@ -12,6 +12,7 @@ import (
 
 var promptCmd =& cobra.Command{
 	Use: "prompt",
+	Aliases: []string{"p"},
 	Short: "Test your custom prompt with the current configuration",
 	Run: func(cmd *cobra.Command, args []string) {
 		if !config.Exists() {

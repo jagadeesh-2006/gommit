@@ -54,7 +54,7 @@ func Save(cfg *Config) error {
 		return err
 	}
 
-	data, err := json.MarshalIndent(cfg,"","	")
+	data, err := json.MarshalIndent(cfg,"","  ")
 	if err != nil {
 		return err
 	}

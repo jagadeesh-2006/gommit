@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"bufio"
+	"os"
+	"strings"
 	"github.com/jagadeesh-2006/gommit/internals/ai"
 	"github.com/jagadeesh-2006/gommit/internals/config"
 	"github.com/spf13/cobra"
@@ -9,6 +12,7 @@ import (
 
 var initCmd = &cobra.Command{
 	Use:   "init",
+	Aliases: []string{"i"},
 	Short: "Setup gommit for the first time",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Setting up gommit for the first time...")
@@ -53,10 +57,14 @@ var initCmd = &cobra.Command{
 		fmt.Print("Commit style (conventional, simple, emoji, any): ")
 		var style string
 		fmt.Scanln(&style)
+		if style == "" {
+			style = "conventional"
+		}
 
-		fmt.Print("Custom prompt (optional): ")
-		var customPrompt string
-		fmt.Scanln(&customPrompt)
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Custom prompt (optional, press Enter to skip): ")
+		customPrompt, _ := reader.ReadString('\n')
+		customPrompt = strings.TrimSpace(customPrompt)
 
 		cfg := &config.Config{
 			Version:     "1",

@@ -10,6 +10,9 @@ package cmd
 
 import (
 	"fmt"
+	"bufio"
+	"os"
+	"strings"
 	"github.com/jagadeesh-2006/gommit/internals/config"
 	"github.com/jagadeesh-2006/gommit/internals/git"
 	"github.com/jagadeesh-2006/gommit/internals/ai"
@@ -18,6 +21,7 @@ import (
 
 var runCmd = &cobra.Command{
 	Use:   "run",
+	Aliases: []string{"r"},
 	Short: "Generate and commit messages",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Running gommit...")	
@@ -69,15 +73,15 @@ var runCmd = &cobra.Command{
 				}
 				fmt.Println("Changes committed with message:", message)
 			case "e":
-				fmt.Print("Enter your custom commit message: ")
-				var customMessage string
-				fmt.Scanln(&customMessage)
+				reader := bufio.NewReader(os.Stdin)
+				fmt.Print("Enter your commit message: ")
+				customMessage, _ := reader.ReadString('\n')
+				customMessage = strings.TrimSpace(customMessage)
 				err := git.Commit(customMessage)
 				if err != nil {
 					fmt.Println("Error committing changes:", err)
 					return
 				}
-				fmt.Println("Changes committed with message:", customMessage)
 			case "r":
 				fmt.Println("Regenerating commit message...")
 				newMessage, err := provider.GenerateCommitMessage(diff)

@@ -2,13 +2,17 @@ package cmd
 
 import (
 	"fmt"
+	"bufio"
+	"os"
+	"strings"
 	"github.com/jagadeesh-2006/gommit/internals/config"
 	"github.com/jagadeesh-2006/gommit/internals/ai"
 	"github.com/spf13/cobra"
 )
 
-var editCmd = &cobra.Command{
-	Use: "edit",
+var updateCmd = &cobra.Command{
+	Use: "update",
+	Aliases: []string{"u"},
 	Short: "Update existing Gommit configuration",
 	Run: func(cmd *cobra.Command, args []string) {
 		if !config.Exists() {
@@ -106,8 +110,11 @@ var editCmd = &cobra.Command{
 
 
 			case 5:
+				reader := bufio.NewReader(os.Stdin)
 				fmt.Print("Enter new custom prompt (or leave blank for default): ")
-				fmt.Scanln(&cfg.CustomPrompt)
+				input, _ := reader.ReadString('\n')
+				cfg.CustomPrompt = strings.TrimSpace(input)
+				
 			default:
 				fmt.Println("Invalid choice")
 				return

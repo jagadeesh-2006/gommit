@@ -20,6 +20,6 @@ func init()  {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(configCmd)
-	rootCmd.AddCommand(editCmd)
+	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(promptCmd)
 }

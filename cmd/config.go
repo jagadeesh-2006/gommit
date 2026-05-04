@@ -8,6 +8,7 @@ import (
 
 var configCmd = &cobra.Command{
 	Use:   "config",
+	Aliases: []string{"cfg"},
 	Short: "Configure Gommit settings",
 	Run: func(cmd *cobra.Command, args []string) {
 		if !config.Exists(){
