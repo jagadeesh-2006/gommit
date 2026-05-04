@@ -21,7 +21,7 @@ var initCmd = &cobra.Command{
 		var apiKey string
 		fmt.Scanln(&apiKey)
 
-		p := ai.GetProvider(provider, apiKey, "", "")
+		p := ai.GetProvider(provider, apiKey, "", "","")
 		if p == nil {
 			fmt.Println("Invalid provider. Choose: anthropic, groq, openai")
 			return
@@ -54,12 +54,17 @@ var initCmd = &cobra.Command{
 		var style string
 		fmt.Scanln(&style)
 
+		fmt.Print("Custom prompt (optional): ")
+		var customPrompt string
+		fmt.Scanln(&customPrompt)
+
 		cfg := &config.Config{
 			Version:     "1",
 			Provider:    provider,
 			Model:       selected,
 			APIKey:      apiKey,
 			CommitStyle: style,
+			CustomPrompt: customPrompt,
 		}
 
 		if err := config.Save(cfg); err != nil {

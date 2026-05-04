@@ -43,7 +43,7 @@ var runCmd = &cobra.Command{
 		}
 		fmt.Println("Got diff ")
 		// step 3 - get provider
-		provider:= ai.GetProvider(cfg.Provider, cfg.APIKey, cfg.Model, cfg.CommitStyle)
+		provider:= ai.GetProvider(cfg.Provider, cfg.APIKey, cfg.Model, cfg.CommitStyle , cfg.CustomPrompt)
 		if provider == nil {
 			fmt.Println("Error getting AI provider:")
 			return

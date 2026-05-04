@@ -5,13 +5,14 @@ type Provider interface {
 	GenerateCommitMessage(diff string) (string, error)
 }	
 
-func GetProvider(name string, apiKey string, model string, style string) Provider {
+func GetProvider(name string, apiKey string, model string, style string, customPrompt string) Provider {
 	switch name {
 		case "anthropic":
 			return &AnthropicProvider{
 				APIKey: apiKey,
 				Model:  model,
 				CommitStyle:  style,
+				CustomPrompt: customPrompt,
 			}
 			
 		case "groq":
@@ -19,6 +20,7 @@ func GetProvider(name string, apiKey string, model string, style string) Provide
 				APIKey: apiKey,
 				Model:  model,
 				CommitStyle:  style,
+				CustomPrompt: customPrompt,
 			}
 
 		case "openai":
@@ -26,6 +28,7 @@ func GetProvider(name string, apiKey string, model string, style string) Provide
 				APIKey: apiKey,
 				Model:  model,
 				CommitStyle:  style,
+				CustomPrompt: customPrompt,
 			}
 		default:
 			return nil

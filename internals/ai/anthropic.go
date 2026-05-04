@@ -12,6 +12,7 @@ type AnthropicProvider struct {
     APIKey string
     Model  string
     CommitStyle string
+    CustomPrompt string
 }
 
 type anthropicModelsResponse struct {
@@ -77,9 +78,9 @@ Given the following git diff, generate a concise commit message in conventional 
 Only return the commit message, nothing else.
 
 Commit style: %s
-
+Custom prompt: %s
 Git diff:
-%s`, a.CommitStyle, diff)
+%s`, a.CommitStyle, a.CustomPrompt, diff)
 
     reqBody := anthropicRequest{
         Model:     a.Model,

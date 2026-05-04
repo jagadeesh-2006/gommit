@@ -38,7 +38,7 @@ var editCmd = &cobra.Command{
 				fmt.Print("Enter new API key: ")
 				fmt.Scanln(&cfg.APIKey)
 
-				p := ai.GetProvider(cfg.Provider, cfg.APIKey, "", "")
+				p := ai.GetProvider(cfg.Provider, cfg.APIKey, "", cfg.CommitStyle,cfg.CustomPrompt)
 				if p == nil {
 					fmt.Println("Invalid provider. Choose: anthropic, groq, openai")
 					return
@@ -70,7 +70,7 @@ var editCmd = &cobra.Command{
 
 			case 2:
 				// fetch models for the current provider
-				p := ai.GetProvider(cfg.Provider, cfg.APIKey, "", "")
+				p := ai.GetProvider(cfg.Provider, cfg.APIKey, "", cfg.CommitStyle, cfg.CustomPrompt)
 
 				// fmt.Println("Fetching models...")
 				models, err := p.FetchModels()
