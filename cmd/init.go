@@ -50,7 +50,7 @@ var initCmd = &cobra.Command{
 
 		selected := models[choice-1]
 
-		fmt.Print("Commit style (conventional, simple, emoji): ")
+		fmt.Print("Commit style (conventional, simple, emoji, any): ")
 		var style string
 		fmt.Scanln(&style)
 

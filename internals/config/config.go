@@ -12,6 +12,7 @@ type Config struct {
 	Model     string `json:"model"`
 	APIKey    string `json:"api_key"`
 	CommitStyle string `json:"commit_style"`
+	CustomPrompt string `json:"custom_prompt"`
 
 }
 

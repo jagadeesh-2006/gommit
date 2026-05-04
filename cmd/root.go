@@ -19,4 +19,6 @@ func Execute() {
 func init()  {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(configCmd)
+	rootCmd.AddCommand(editCmd)
 }
