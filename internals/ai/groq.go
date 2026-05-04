@@ -8,23 +8,26 @@ import (
 	"net/http"
 )
 
-type OpenAIProvider struct {
+type GroqProvider struct {
 	APIKey string
 	Model  string
 }
 
-type openAIModelsResponse struct {
+// ---- FetchModels ----
+
+type groqModelsResponse struct {
 	Data []struct {
 		ID string `json:"id"`
 	} `json:"data"`
 }
 
-func (g *OpenAIProvider) FetchModels() ([]string, error) {
-	req, err := http.NewRequest("GET", "https://api.openai.com/v1/models", nil)
+func (g *GroqProvider) FetchModels() ([]string, error) {
+	req, err := http.NewRequest("GET", "https://api.groq.com/openai/v1/models", nil)
 	if err != nil {
 		return nil, err
 	}
 
+	// notice: Bearer token, not x-api-key like anthropic
 	req.Header.Set("Authorization", "Bearer "+g.APIKey)
 
 	client := &http.Client{}
@@ -39,7 +42,7 @@ func (g *OpenAIProvider) FetchModels() ([]string, error) {
 		return nil, err
 	}
 
-	var result openAIModelsResponse
+	var result groqModelsResponse
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, err
 	}
@@ -52,17 +55,17 @@ func (g *OpenAIProvider) FetchModels() ([]string, error) {
 	return models, nil
 }
 
-type openAIRequest struct {
+type groqRequest struct {
 	Model    string        `json:"model"`
-	Messages []openAIMessage `json:"messages"`
+	Messages []groqMessage `json:"messages"`
 }
 
-type openAIMessage struct {
+type groqMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
 
-type openAIResponse struct {
+type groqResponse struct {
 	Choices []struct {
 		Message struct {
 			Content string `json:"content"`
@@ -70,7 +73,7 @@ type openAIResponse struct {
 	} `json:"choices"`
 }
 
-func (g *OpenAIProvider) GenerateCommitMessage(diff string) (string, error) {
+func (g *GroqProvider) GenerateCommitMessage(diff string) (string, error) {
 	prompt := fmt.Sprintf(`You are a git commit message generator.
 Given the following git diff, generate a concise commit message in conventional commits format.
 Only return the commit message, nothing else.
@@ -78,9 +81,9 @@ Only return the commit message, nothing else.
 Git diff:
 %s`, diff)
 
-	reqBody := openAIRequest{
+	reqBody := groqRequest{
 		Model: g.Model,
-		Messages: []openAIMessage{
+		Messages: []groqMessage{
 			{Role: "user", Content: prompt},
 		},
 	}
@@ -90,7 +93,7 @@ Git diff:
 		return "", err
 	}
 
-	req, err := http.NewRequest("POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequest("POST", "https://api.groq.com/openai/v1/chat/completions", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return "", err
 	}
@@ -110,13 +113,13 @@ Git diff:
 		return "", err
 	}
 
-	var result openAIResponse
+	var result groqResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return "", err
 	}
 
 	if len(result.Choices) == 0 {
-		return "", fmt.Errorf("no response from openai")
+		return "", fmt.Errorf("no response from groq")
 	}
 
 	return result.Choices[0].Message.Content, nil

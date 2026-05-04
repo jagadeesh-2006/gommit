@@ -1,8 +1,30 @@
 package ai
 
 type Provider interface {  
-	// Models returns a list of available models for the provider
-	Models(apiKey string ) ([]string, error)   // 
-	// GenCommitMsg generates a commit message based on the provided diff and returns it as a string
-	GenCommitMsg(diff string) (string, error)
+	FetchModels() ([]string, error)   // 
+	GenerateCommitMessage(diff string) (string, error)
 }	
+
+func GetProvider(name string, apiKey string, model string) Provider {
+	switch name {
+		case "anthropic":
+			provider := &GroqProvider{
+			APIKey: "apikey",
+			Model:  "model",	
+			}
+			return provider
+		case "groq":
+			return &GroqProvider{
+				APIKey: apiKey,
+				Model:  model,
+			}
+
+		case "openai":
+			return &OpenAIProvider{
+				APIKey: apiKey,
+				Model:  model,
+			}
+		default:
+			return nil
+	}
+}
