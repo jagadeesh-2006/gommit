@@ -11,9 +11,8 @@ import (
 type GroqProvider struct {
 	APIKey string
 	Model  string
+	CommitStyle string
 }
-
-// ---- FetchModels ----
 
 type groqModelsResponse struct {
 	Data []struct {
@@ -27,7 +26,6 @@ func (g *GroqProvider) FetchModels() ([]string, error) {
 		return nil, err
 	}
 
-	// notice: Bearer token, not x-api-key like anthropic
 	req.Header.Set("Authorization", "Bearer "+g.APIKey)
 
 	client := &http.Client{}
@@ -78,8 +76,10 @@ func (g *GroqProvider) GenerateCommitMessage(diff string) (string, error) {
 Given the following git diff, generate a concise commit message in conventional commits format.
 Only return the commit message, nothing else.
 
+Commit style: %s
+
 Git diff:
-%s`, diff)
+%s`, g.CommitStyle, diff)
 
 	reqBody := groqRequest{
 		Model: g.Model,

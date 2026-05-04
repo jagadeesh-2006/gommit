@@ -1,28 +1,31 @@
 package ai
 
 type Provider interface {  
-	FetchModels() ([]string, error)   // 
+	FetchModels() ([]string, error)   // Fetch available models
 	GenerateCommitMessage(diff string) (string, error)
 }	
 
-func GetProvider(name string, apiKey string, model string) Provider {
+func GetProvider(name string, apiKey string, model string, style string) Provider {
 	switch name {
 		case "anthropic":
-			provider := &GroqProvider{
-			APIKey: "apikey",
-			Model:  "model",	
+			return &AnthropicProvider{
+				APIKey: apiKey,
+				Model:  model,
+				CommitStyle:  style,
 			}
-			return provider
+			
 		case "groq":
 			return &GroqProvider{
 				APIKey: apiKey,
 				Model:  model,
+				CommitStyle:  style,
 			}
 
 		case "openai":
 			return &OpenAIProvider{
 				APIKey: apiKey,
 				Model:  model,
+				CommitStyle:  style,
 			}
 		default:
 			return nil

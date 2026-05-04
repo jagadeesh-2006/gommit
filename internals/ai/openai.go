@@ -11,6 +11,7 @@ import (
 type OpenAIProvider struct {
 	APIKey string
 	Model  string
+	CommitStyle string
 }
 
 type openAIModelsResponse struct {
@@ -75,8 +76,10 @@ func (g *OpenAIProvider) GenerateCommitMessage(diff string) (string, error) {
 Given the following git diff, generate a concise commit message in conventional commits format.
 Only return the commit message, nothing else.
 
+Commit style: %s
+
 Git diff:
-%s`, diff)
+%s`, g.CommitStyle, diff)
 
 	reqBody := openAIRequest{
 		Model: g.Model,

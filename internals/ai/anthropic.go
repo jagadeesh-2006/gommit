@@ -11,9 +11,8 @@ import (
 type AnthropicProvider struct {
     APIKey string
     Model  string
+    CommitStyle string
 }
-
-// ---- FetchModels ----
 
 type anthropicModelsResponse struct {
     Data []struct {
@@ -55,8 +54,6 @@ func (a *AnthropicProvider) FetchModels() ([]string, error) {
     return models, nil
 }
 
-// ---- GenerateCommitMessage ----
-
 type anthropicRequest struct {
     Model     string              `json:"model"`
     MaxTokens int                 `json:"max_tokens"`
@@ -79,8 +76,10 @@ func (a *AnthropicProvider) GenerateCommitMessage(diff string) (string, error) {
 Given the following git diff, generate a concise commit message in conventional commits format.
 Only return the commit message, nothing else.
 
+Commit style: %s
+
 Git diff:
-%s`, diff)
+%s`, a.CommitStyle, diff)
 
     reqBody := anthropicRequest{
         Model:     a.Model,
