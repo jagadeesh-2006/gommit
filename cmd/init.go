@@ -20,11 +20,18 @@ var initCmd = &cobra.Command{
 		fmt.Print("Enter your AI provider (anthropic, groq, openai): ")
 		var provider string
 		fmt.Scanln(&provider)
+		if provider == "" {
+			fmt.Println("Provider cannot be empty")
+			return
+		}
 
 		fmt.Print("Enter your API key: ")
 		var apiKey string
 		fmt.Scanln(&apiKey)
-
+		if apiKey == "" {
+			fmt.Println("API key cannot be empty")
+			return
+		}
 		p := ai.GetProvider(provider, apiKey, "", "","")
 		if p == nil {
 			fmt.Println("Invalid provider. Choose: anthropic, groq, openai")

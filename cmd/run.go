@@ -27,12 +27,12 @@ var runCmd = &cobra.Command{
 		fmt.Println("Running gommit...")	
 		// step 1 - load config
 		if !config.Exists() {
-			fmt.Println("Config not found.")
+			// fmt.Println("Config not found.")
 			fmt.Println("Please run `gommit init` first to set up your configuration.")
 			return
 		}
 		
-		fmt.Println("Config exists ✓")
+		// fmt.Println("Config exists ✓")
 		cfg, err := config.Load()
 		if err != nil {
 			fmt.Println("Error loading config:", err)
@@ -45,14 +45,14 @@ var runCmd = &cobra.Command{
 			fmt.Println("Error getting diff:", err)
 			return
 		}
-		fmt.Println("Got diff ")
+		// fmt.Println("Got diff ")
 		// step 3 - get provider
 		provider:= ai.GetProvider(cfg.Provider, cfg.APIKey, cfg.Model, cfg.CommitStyle , cfg.CustomPrompt)
 		if provider == nil {
 			fmt.Println("Error getting AI provider:")
 			return
 		}
-		fmt.Println("Got AI provider ")
+		// fmt.Println("Got AI provider ")
 		// step 4 - generate commit message
 		message, err := provider.GenerateCommitMessage(diff)
 		if err != nil {

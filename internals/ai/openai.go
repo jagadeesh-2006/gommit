@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 type OpenAIProvider struct {
@@ -29,7 +30,9 @@ func (g *OpenAIProvider) FetchModels() ([]string, error) {
 
 	req.Header.Set("Authorization", "Bearer "+g.APIKey)
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 15* time.Second,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -102,13 +105,22 @@ Git diff:
 	req.Header.Set("Authorization", "Bearer "+g.APIKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-
+	switch resp.StatusCode {
+		case 429:
+			return "", fmt.Errorf("rate limit exceeded: %s", resp.Status)
+		case 401:
+			return "", fmt.Errorf("invalid API key - run `gommit update` to set valid key")
+		case 500, 502, 503:
+			return "", fmt.Errorf("provider is down try again later")
+	}
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err

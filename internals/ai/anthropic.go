@@ -6,6 +6,7 @@ import (
     "io"
     "net/http"
     "bytes"
+    "time"
 )
 
 type AnthropicProvider struct {
@@ -30,7 +31,9 @@ func (a *AnthropicProvider) FetchModels() ([]string, error) {
     req.Header.Set("x-api-key", a.APIKey)
     req.Header.Set("anthropic-version", "2023-06-01")
 
-    client := &http.Client{}
+    client := &http.Client{
+        Timeout: 15* time.Second,
+    }
     resp, err := client.Do(req)
     if err != nil {
         return nil, err
@@ -104,12 +107,23 @@ Git diff:
     req.Header.Set("anthropic-version", "2023-06-01")
     req.Header.Set("content-type", "application/json")
 
-    client := &http.Client{}
+    client := &http.Client{
+        Timeout: 15 * time.Second,
+    }
     resp, err := client.Do(req)
     if err != nil {
         return "", err
     }
     defer resp.Body.Close()
+    // response status for failing request
+    switch resp.StatusCode {
+        case 429:
+            return "", fmt.Errorf("rate limit exceeded: %s", resp.Status)
+        case 401:
+            return "", fmt.Errorf("invalid API key - run `gommit update` to set valid key")
+        case 500, 502, 503:
+            return "", fmt.Errorf("provider is down try again later")
+    }
 
     respBody, err := io.ReadAll(resp.Body)
     if err != nil {
