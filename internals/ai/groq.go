@@ -113,7 +113,6 @@ Git diff:
 	if err != nil {
 		return "", err
 	}
-
 	var result groqResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return "", err

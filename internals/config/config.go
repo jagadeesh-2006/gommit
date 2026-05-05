@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -38,7 +39,11 @@ func Load() (*Config, error) {
 	}
 	var cfg Config
 	if err:= json.Unmarshal(data,&cfg); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("config is incomplete - run gommit init to fix")
+	}
+	// validate config fields
+	if cfg.Provider == "" || cfg.Model == "" || cfg.APIKey == "" {
+		return nil,  fmt.Errorf("config is incomplete - run gommit init to fix")
 	}
 	return &cfg, nil
 }
