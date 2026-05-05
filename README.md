@@ -100,6 +100,56 @@ Choose your action:
 
 ## Commands
 
+### `gommit init` (alias: `i`)
+Set up gommit for the first time. Prompts you to:
+- Choose an AI provider (Groq, Anthropic, or OpenAI)
+- Enter your API key
+- Select a model
+- Choose a commit style (conventional, simple, or emoji)
+- Optionally set a custom prompt
+
+```bash
+gommit init
+```
+
+### `gommit run` (alias: `r`)
+Generate an AI-powered commit message for staged changes and optionally commit.
+Requires a prior `gommit init` setup.
+
+```bash
+gommit run
+```
+
+### `gommit config` (alias: `cfg`)
+View your current configuration settings including provider, model, commit style, and custom prompt.
+
+```bash
+gommit config
+```
+
+### `gommit update` (alias: `u`)
+Update any of your existing configuration settings:
+- Provider, Model, and API key
+- Model only
+- API key only
+- Commit style
+- Custom prompt
+
+```bash
+gommit update
+```
+
+### `gommit prompt` (alias: `p`)
+Test and update your custom prompt. Allows you to review or modify the current custom prompt used for commit message generation.
+
+```bash
+gommit prompt
+```
+
+---
+
+## Commands
+
 | Command | Shortcut | Description |
 |---|---|---|
 | `gommit init` | `gommit i` | First time setup wizard |
