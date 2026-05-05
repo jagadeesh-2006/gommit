@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"github.com/spf13/cobra"
+	"github.com/fatih/color"
 )
 var rootCmd = &cobra.Command{
 	Use:   "gommit",
@@ -11,7 +11,7 @@ var rootCmd = &cobra.Command{
 }
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println("Error:", err)
+		color.Red("Error: %s", err)
 		os.Exit(1)
 	}
 }

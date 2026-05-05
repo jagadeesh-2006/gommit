@@ -7,6 +7,7 @@ import (
 	"strings"
 	"github.com/jagadeesh-2006/gommit/internals/config"
 	"github.com/jagadeesh-2006/gommit/internals/ai"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -16,56 +17,56 @@ var updateCmd = &cobra.Command{
 	Short: "Update existing Gommit configuration",
 	Run: func(cmd *cobra.Command, args []string) {
 		if !config.Exists() {
-			fmt.Println("No existing configuration found. Please run 'gommit init' to set up your configuration.")
+			color.Red(" Config not found — run `gommit init` first")
 			return
 		}
 		cfg, err := config.Load()
 		if err != nil {
-			fmt.Println("Error loading configuration:", err)
+			color.Red("Error loading configuration: %s", err)
 			return
 		}
 		var choice int
-		fmt.Println("Select the setting you want to update:")
-		fmt.Println("1. Provider + model + API key")
-		fmt.Println("2. Model")
-		fmt.Println("3. API Key")
-		fmt.Println("4. Commit Style")
-		fmt.Println("5. Custom Prompt")
+		color.White("Select the setting you want to update:")
+		color.White("1. Provider + model + API key")
+		color.White("2. Model")
+		color.White("3. API Key")
+		color.White("4. Commit Style")
+		color.White("5. Custom Prompt")
 		fmt.Scanln(&choice)
 		
 		switch choice {
 
 			case 1:
-				fmt.Print("Enter new provider (e.g., groq, openai): ")
+				color.White("Enter new provider (e.g., groq, openai): ")
 				fmt.Scanln(&cfg.Provider)
 
-				fmt.Print("Enter new API key: ")
+				color.White("Enter new API key: ")
 				fmt.Scanln(&cfg.APIKey)
 
 				p := ai.GetProvider(cfg.Provider, cfg.APIKey, "", cfg.CommitStyle,cfg.CustomPrompt)
 				if p == nil {
-					fmt.Println("Invalid provider. Choose: anthropic, groq, openai")
+					color.Red("Invalid provider. Choose: anthropic, groq, openai")
 					return
 				}
 
-				fmt.Println("Fetching models...")
+				color.White("Fetching models...")
 				models, err := p.FetchModels()
 				if err != nil {
-					fmt.Println("Error fetching models:", err)
+					color.Red("Error fetching models: %s", err)
 					return
 				}
 
-				fmt.Println("Available models:")
+				color.White("Available models:")
 				for i, m := range models {
-					fmt.Printf("%d. %s\n", i+1, m)
+					color.White("%d. %s", i+1, m)
 				}
 
-				fmt.Print("Select a model number: ")
+				color.White("Select a model number: ")
 				var choice int
 				fmt.Scanln(&choice)
 
 				if choice < 1 || choice > len(models) {
-					fmt.Println("Invalid choice")
+					color.Red("Invalid choice")
 					return
 				}
 
@@ -79,53 +80,53 @@ var updateCmd = &cobra.Command{
 				// fmt.Println("Fetching models...")
 				models, err := p.FetchModels()
 				if err != nil {
-					fmt.Println("Error fetching models:", err)
+					color.Red("Error fetching models: %s", err)
 					return
 				}
 
-				fmt.Println("Available models:")
+				color.White("Available models:")
 				for i, m := range models {
-					fmt.Printf("%d. %s\n", i+1, m)
+					color.White("%d. %s", i+1, m)
 				}
 
-				fmt.Print("Select a model number: ")
+				color.White("Select a model number: ")
 				var choice int
 				fmt.Scanln(&choice)
 
 				if choice < 1 || choice > len(models) {
-					fmt.Println("Invalid choice")
+					color.Red("Invalid choice")
 					return
 				}
 				cfg.Model = models[choice-1]
 
 
 			case 3:
-				fmt.Print("Enter new API key: ")
+				color.White("Enter new API key: ")
 				fmt.Scanln(&cfg.APIKey)
 
 
 			case 4:
-				fmt.Print("Enter new commit style (e.g., conventional, gitmoji , simple , any): ")
+				color.White("Enter new commit style (e.g., conventional, gitmoji , simple , any): ")
 				fmt.Scanln(&cfg.CommitStyle)
 
 
 			case 5:
 				reader := bufio.NewReader(os.Stdin)
-				fmt.Print("Enter new custom prompt (or leave blank for default): ")
+				color.White("Enter new custom prompt (or leave blank for default): ")
 				input, _ := reader.ReadString('\n')
 				cfg.CustomPrompt = strings.TrimSpace(input)
 				
 			default:
-				fmt.Println("Invalid choice")
+				color.Red("Invalid choice")
 				return
 		}
 
 		err = config.Save(cfg)
 		if err != nil {
-			fmt.Println("Error saving configuration:", err)
+			color.Red("Error saving configuration: %s", err)
 			return
 		}
 
-		fmt.Println("Configuration updated successfully!")
+		color.Green("Configuration updated successfully!")
 	},
 }

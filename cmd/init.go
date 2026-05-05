@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"os"
 	"strings"
+	"github.com/fatih/color"
 	"github.com/jagadeesh-2006/gommit/internals/ai"
 	"github.com/jagadeesh-2006/gommit/internals/config"
 	"github.com/spf13/cobra"
@@ -15,53 +16,53 @@ var initCmd = &cobra.Command{
 	Aliases: []string{"i"},
 	Short: "Setup gommit for the first time",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Setting up gommit for the first time...")
+		color.White("Setting up gommit for the first time...")
 
-		fmt.Print("Enter your AI provider (anthropic, groq, openai): ")
+		color.White("Enter your AI provider (anthropic, groq, openai): ")
 		var provider string
 		fmt.Scanln(&provider)
 		if provider == "" {
-			fmt.Println("Provider cannot be empty")
+			color.Red("Provider cannot be empty")
 			return
 		}
 
-		fmt.Print("Enter your API key: ")
+		color.White("Enter your API key: ")
 		var apiKey string
 		fmt.Scanln(&apiKey)
 		if apiKey == "" {
-			fmt.Println("API key cannot be empty")
+			color.Red("API key cannot be empty")
 			return
 		}
 		p := ai.GetProvider(provider, apiKey, "", "","")
 		if p == nil {
-			fmt.Println("Invalid provider. Choose: anthropic, groq, openai")
+			color.Red("Invalid provider. Choose: anthropic, groq, openai")
 			return
 		}
 
-		fmt.Println("Fetching models...")
+		color.White("Fetching models...")
 		models, err := p.FetchModels()
 		if err != nil {
-			fmt.Println("Error fetching models:", err)
+			color.Red("Error fetching models: %s", err)
 			return
 		}
 
-		fmt.Println("Available models:")
+		color.White("Available models:")
 		for i, m := range models {
-			fmt.Printf("%d. %s\n", i+1, m)
+			color.White("%d. %s", i+1, m)
 		}
 
-		fmt.Print("Select a model number: ")
+		color.White("Select a model number: ")
 		var choice int
 		fmt.Scanln(&choice)
 
 		if choice < 1 || choice > len(models) {
-			fmt.Println("Invalid choice")
+			color.Red("Invalid choice")
 			return
 		}
 
 		selected := models[choice-1]
 
-		fmt.Print("Commit style (conventional, simple, emoji, any): ")
+		color.White("Commit style (conventional, simple, emoji, any): ")
 		var style string
 		fmt.Scanln(&style)
 		if style == "" {
@@ -69,7 +70,7 @@ var initCmd = &cobra.Command{
 		}
 
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Custom prompt (optional, press Enter to skip): ")
+		color.White("Custom prompt (optional, press Enter to skip): ")
 		customPrompt, _ := reader.ReadString('\n')
 		customPrompt = strings.TrimSpace(customPrompt)
 
@@ -83,10 +84,10 @@ var initCmd = &cobra.Command{
 		}
 
 		if err := config.Save(cfg); err != nil {
-			fmt.Println("Error saving config:", err)
+			color.Red("Error saving config: %s", err)
 			return
 		}
 
-		fmt.Println("Config saved! Run `gommit run` in any repo.")
+		color.Green("Config saved! Run `gommit run` in any repo.")
 	},
 }

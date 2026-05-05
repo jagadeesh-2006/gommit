@@ -4,7 +4,7 @@ import (
     "bufio"
     "os"
     "strings"
-	"fmt"
+	"github.com/fatih/color"
 	"github.com/jagadeesh-2006/gommit/internals/config"
 	"github.com/spf13/cobra"
 )
@@ -16,21 +16,22 @@ var promptCmd =& cobra.Command{
 	Short: "Test your custom prompt with the current configuration",
 	Run: func(cmd *cobra.Command, args []string) {
 		if !config.Exists() {
-			fmt.Println("No existing configuration found. Please run 'gommit init' to set up your configuration.")
+			color.Red("No existing configuration found. Please run 'gommit init' to set up your configuration.")
 			return
 		}
-		cfg, err := config.Load()
+		cfg, err := config.Load()	
 		if err != nil {
-			fmt.Println("Error loading configuration:", err)
+			color.Red("Error loading configuration: %s", err)
 			return
 		}
 		p := cfg.CustomPrompt
 		if p == "" {
 			p = "none"
 		}
-		fmt.Printf("Current prompt:\n%s\n", p)
-		fmt.Print("Enter a test prompt (or press Enter to use the current one): ")
-		
+		color.White("Current prompt:")
+		color.White("%s", p)
+		color.White("Enter a test prompt (or press Enter to use the current one): ")
+
 		reader := bufio.NewReader(os.Stdin)
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
@@ -38,12 +39,13 @@ var promptCmd =& cobra.Command{
 			p = input
 			cfg.CustomPrompt = input
 		}
-		fmt.Printf("Test prompt:\n%s\n", p)
+		color.White("Test prompt:")
+		color.White("%s", p)
 		err = config.Save(cfg)
 		if err != nil {
-			fmt.Println("Error saving configuration:", err)
+			color.Red("Error saving configuration: %s", err)
 			return
 		}
-		fmt.Println("Prompt updated successfully!")
+		color.Green("Prompt updated successfully!")
 	},
 }
