@@ -7,6 +7,7 @@ import (
     "net/http"
     "bytes"
     "time"
+    "strings"
 )
 
 type AnthropicProvider struct {
@@ -50,11 +51,21 @@ func (a *AnthropicProvider) FetchModels() ([]string, error) {
         return nil, err
     }
 
+    blocked := []string{"instant", "legacy"}
+
     models := []string{}
     for _, m := range result.Data {
-        models = append(models, m.ID)
+        isBlocked := false
+        for _, b := range blocked {
+            if strings.Contains(strings.ToLower(m.ID), b) {
+                isBlocked = true
+                break
+            }
+        }
+        if !isBlocked {
+            models = append(models, m.ID)
+        }
     }
-
     return models, nil
 }
 

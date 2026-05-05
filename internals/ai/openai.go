@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"time"
+	"strings"
 )
 
 type OpenAIProvider struct {
@@ -48,10 +49,16 @@ func (g *OpenAIProvider) FetchModels() ([]string, error) {
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, err
 	}
+	allowed := []string{"gpt-3", "gpt-4", "o1", "o3"}
 
 	models := []string{}
 	for _, m := range result.Data {
-		models = append(models, m.ID)
+		for _, a := range allowed {
+			if strings.Contains(strings.ToLower(m.ID), a) {
+				models = append(models, m.ID)
+				break
+			}
+		}
 	}
 
 	return models, nil

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"time"
+	"strings"
 )
 
 type GroqProvider struct {
@@ -49,10 +50,18 @@ func (g *GroqProvider) FetchModels() ([]string, error) {
 		return nil, err
 	}
 
-	models := []string{}
-	for _, m := range result.Data {
-		models = append(models, m.ID)
-	}
+	allowed := []string{"llama", "mixtral", "gemma", "qwen", "deepseek"}
+
+    models := []string{}
+    for _, m := range result.Data {
+        for _, a := range allowed {
+            if strings.Contains(strings.ToLower(m.ID), a) {
+                models = append(models, m.ID)
+                break
+            }
+        }
+    }
+	
 
 	return models, nil
 }
