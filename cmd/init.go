@@ -2,9 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"bufio"
-	"os"
-	"strings"
 	"github.com/fatih/color"
 	"github.com/jagadeesh-2006/gommit/internals/ai"
 	"github.com/jagadeesh-2006/gommit/internals/config"
@@ -69,10 +66,6 @@ var initCmd = &cobra.Command{
 			style = "conventional"
 		}
 
-		reader := bufio.NewReader(os.Stdin)
-		color.White("Custom prompt (optional, press Enter to skip): ")
-		customPrompt, _ := reader.ReadString('\n')
-		customPrompt = strings.TrimSpace(customPrompt)
 
 		cfg := &config.Config{
 			Version:     "1",
@@ -80,7 +73,7 @@ var initCmd = &cobra.Command{
 			Model:       selected,
 			APIKey:      apiKey,
 			CommitStyle: style,
-			CustomPrompt: customPrompt,
+			CustomPrompt: "",
 		}
 
 		if err := config.Save(cfg); err != nil {
