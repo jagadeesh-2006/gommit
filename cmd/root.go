@@ -22,4 +22,5 @@ func init()  {
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(promptCmd)
+	rootCmd.AddCommand(undoCmd)
 }

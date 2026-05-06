@@ -91,7 +91,7 @@ var runCmd = &cobra.Command{
 					color.Red("Error generating commit message: %s", err)
 					return
 				}
-				color.Green("Regenerated commit message: %s", newMessage)
+				color.Cyan("Regenerated commit message: %s", newMessage)
 				color.White("Do you want to use this commit message? (y/n): ")
 				var newChoice string
 				fmt.Scanln(&newChoice)
