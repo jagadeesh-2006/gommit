@@ -6,44 +6,89 @@
 
 ---
 
-## Why gommit?
+## The Problem
 
-Every AI commit tool is built in Node.js — which means installing npm, a runtime, and dozens of dependencies just to get a CLI utility.
+Writing good commit messages is something every developer knows they should do — but almost nobody does consistently.
 
-**gommit is different:**
-- Single binary — no runtime, no npm, no dependencies
-- Bring your own API key — your code never leaves your machine
-- Supports multiple AI providers — Groq (free), Anthropic, OpenAI
-- Works on Windows, Mac, and Linux
+You finish a fix, you're tired, you type `git commit -m "fix"` and move on. Three weeks later you're debugging and your git history is full of `update`, `fix`, `changes`, `wip`. You have no idea what anything does.
+
+Every existing AI commit tool requires Node.js — which means npm, a runtime, and dozens of packages just to get a single CLI utility. Half the time it breaks because of Node version conflicts.
+
+**gommit solves both problems:**
+- Reads your staged diff and generates a proper, descriptive commit message using AI
+- Ships as a single binary — no Node, no npm, no runtime, no dependencies
+- Works on Windows, Mac, and Linux out of the box
+- Supports 5 AI providers including free options and fully offline local models
 
 ---
 
 ## Install
 
-### Option 1 — go install *(recommended)*
-Requires [Go](https://golang.org/dl/) installed.
+### Windows
 
 ```bash
+# requires Go installed — https://golang.org/dl/
 go install github.com/jagadeesh-2006/gommit@latest
 ```
 
-### Option 2 — Build from Source
+Or download the binary directly from [Releases](https://github.com/jagadeesh-2006/gommit/releases/latest):
+1. Download `gommit_windows_amd64.zip`
+2. Extract `gommit.exe`
+3. Move to a folder in your PATH:
+```bash
+copy gommit.exe %USERPROFILE%\go\bin\
+```
+4. Open a new terminal and run `gommit init`
+
+---
+
+### macOS
 
 ```bash
-# 1. clone the repo
-git clone https://github.com/jagadeesh-2006/gommit.git
-cd gommit
+# requires Go installed — https://golang.org/dl/
+go install github.com/jagadeesh-2006/gommit@latest
+```
 
-# 2. install dependencies
-go mod tidy
-
-# 3. build binary
-go build -o gommit .
-
-# 4. move to PATH (mac/linux)
+Or download from [Releases](https://github.com/jagadeesh-2006/gommit/releases/latest):
+```bash
+# Intel Mac
+curl -L https://github.com/jagadeesh-2006/gommit/releases/latest/download/gommit_darwin_amd64.tar.gz | tar xz
 sudo mv gommit /usr/local/bin/
 
-# windows — move to go bin
+# Apple Silicon (M1/M2/M3)
+curl -L https://github.com/jagadeesh-2006/gommit/releases/latest/download/gommit_darwin_arm64.tar.gz | tar xz
+sudo mv gommit /usr/local/bin/
+```
+
+---
+
+### Linux
+
+```bash
+# requires Go installed — https://golang.org/dl/
+go install github.com/jagadeesh-2006/gommit@latest
+```
+
+Or download from [Releases](https://github.com/jagadeesh-2006/gommit/releases/latest):
+```bash
+curl -L https://github.com/jagadeesh-2006/gommit/releases/latest/download/gommit_linux_amd64.tar.gz | tar xz
+sudo mv gommit /usr/local/bin/
+```
+
+---
+
+### Build from Source
+
+```bash
+git clone https://github.com/jagadeesh-2006/gommit.git
+cd gommit
+go mod tidy
+go build -o gommit .
+
+# mac/linux
+sudo mv gommit /usr/local/bin/
+
+# windows
 copy gommit.exe %USERPROFILE%\go\bin\
 ```
 
@@ -51,14 +96,14 @@ copy gommit.exe %USERPROFILE%\go\bin\
 
 ## Quick Start
 
-### Step 1 — Run setup wizard
+### Step 1 — Setup
 
 ```bash
 gommit init
 ```
 
 ```
-Enter your AI provider (anthropic, groq, openai): groq
+Enter your AI provider (anthropic, groq, openai, gemini, ollama): groq
 Enter your API key: gsk_xxxxxxxxxxxx
 Fetching models...
 Available models:
@@ -67,7 +112,6 @@ Available models:
 3. mixtral-8x7b-32768
 Select a model number: 1
 Commit style (conventional, simple, emoji): conventional
-Custom prompt (optional, press Enter to skip):
 ✅ Config saved. Run `gommit run` in any repo.
 ```
 
@@ -91,7 +135,7 @@ Suggested commit: feat(auth): add JWT token refresh logic
 
 - `y` — accept and commit
 - `e` — edit the message then commit
-- `r` — regenerate a new message
+- `r` — regenerate a new suggestion
 - `n` — cancel without committing
 
 ---
@@ -111,7 +155,7 @@ Suggested commit: feat(auth): add JWT token refresh logic
 ---
 
 ### `gommit init`
-First time setup. Prompts for provider, API key, model, commit style, and optional custom prompt.
+First time setup. Walks you through choosing a provider, entering your API key, selecting a model, and setting a commit style.
 
 ```bash
 gommit init
@@ -120,7 +164,7 @@ gommit init
 ---
 
 ### `gommit run`
-Reads your staged diff, sends to AI, suggests a commit message, and commits on approval.
+Reads your staged diff, sends to AI, suggests a commit message, and commits on your approval.
 
 ```bash
 git add .
@@ -134,30 +178,31 @@ View your current saved configuration.
 
 ```bash
 gommit config
-
-# output:
-# Current Configuration:
-#   Provider:      groq
-#   Model:         llama-3.3-70b-versatile
-#   API Key:       gsk_xxxx****
-#   Commit Style:  conventional
-#   Custom Prompt: none
+```
+```
+Current Configuration:
+  Provider:      groq
+  Model:         llama-3.3-70b-versatile
+  API Key:       gsk_xxxx****
+  Commit Style:  conventional
+  Custom Prompt: none
 ```
 
 ---
 
 ### `gommit update`
-Update any config value without re-running init. Auto-fetches models when switching provider.
+Update any config value without re-running init. Automatically fetches models when switching provider.
 
 ```bash
 gommit update
-
-# Select the setting you want to update:
-# 1. Provider + model + API key
-# 2. Model
-# 3. API Key
-# 4. Commit Style
-# 5. Custom Prompt
+```
+```
+Select the setting you want to update:
+1. Provider + model + API key
+2. Model
+3. API Key
+4. Commit Style
+5. Custom Prompt
 ```
 
 ---
@@ -167,21 +212,23 @@ Set custom instructions for how you want your commit messages generated.
 
 ```bash
 gommit prompt
-
-# Current prompt: none
-# Enter your prompt instructions: keep messages under 50 chars, focus on why not what
-# ✅ Prompt saved.
+```
+```
+Current prompt: none
+Enter your prompt instructions: keep messages under 50 chars, focus on why not what
+✅ Prompt saved.
 ```
 
 ---
 
 ### `gommit undo`
-Undo your last commit and keep changes staged — ready to recommit.
+Made a bad commit? Undo it and keep your changes staged — ready to recommit immediately.
 
 ```bash
 gommit undo
-# runs: git reset --soft HEAD~1
-# your staged changes come back, nothing is lost
+```
+```
+✅ Last commit undone — changes are still staged
 ```
 
 ---
@@ -191,26 +238,49 @@ Remove gommit configuration from your machine.
 
 ```bash
 gommit uninstall
+```
+```
+⚠ Are you sure you want to remove gommit config? (y/n): y
+✅ gommit config removed successfully.
 
-# Are you sure you want to remove gommit config? (y/n): y
-# ✅ gommit config removed successfully.
-# Note: Binary is still installed. To fully remove:
-#   Windows:   del %USERPROFILE%\go\bin\gommit.exe
-#   Mac/Linux: rm /usr/local/bin/gommit
+Note: Binary is still installed. To fully remove:
+  Windows:   del %USERPROFILE%\go\bin\gommit.exe
+  Mac/Linux: rm /usr/local/bin/gommit
 ```
 
 ---
 
 ## Supported Providers
 
-| Provider | Free Tier | Models |
-|---|---|---|
-| [Groq](https://console.groq.com) | ✅ Free | Llama 3.3, Mixtral, Gemma |
-| [Anthropic](https://console.anthropic.com) | ❌ Paid | Claude 3.5, Claude 3 |
-| [OpenAI](https://platform.openai.com/api-keys) | ❌ Paid | GPT-4o, GPT-4 Turbo |
+| Provider | Free | API Key | Internet | Get Key |
+|---|---|---|---|---|
+| Groq | ✅ Free | Required | Yes | [console.groq.com](https://console.groq.com) |
+| Gemini | ✅ Free tier | Required | Yes | [aistudio.google.com](https://aistudio.google.com) |
+| Ollama | ✅ Free | ❌ None | ❌ No | [ollama.com](https://ollama.com) |
+| Anthropic | ❌ Paid | Required | Yes | [console.anthropic.com](https://console.anthropic.com) |
+| OpenAI | ❌ Paid | Required | Yes | [platform.openai.com](https://platform.openai.com/api-keys) |
 
 > **New to this?** Start with Groq — completely free, no credit card required.
-> Get your key at [console.groq.com](https://console.groq.com)
+
+> **Privacy focused?** Use Ollama — runs fully offline on your machine, nothing leaves your computer.
+
+---
+
+### Setting up Ollama
+
+```bash
+# 1. install ollama
+# download from https://ollama.com
+
+# 2. pull a model
+ollama pull llama3
+
+# 3. run gommit init and pick ollama
+gommit init
+# → provider: ollama
+# → no API key needed
+# → picks from your locally installed models
+```
 
 ---
 
@@ -221,7 +291,7 @@ gommit uninstall
 | `conventional` | `feat(auth): add JWT token refresh logic` |
 | `simple` | `add JWT token refresh logic` |
 | `emoji` | `✨ add JWT token refresh logic` |
-| `any` | define your own style via custom prompt |
+| `any` | define your own style via `gommit prompt` |
 
 ---
 
@@ -251,45 +321,70 @@ Stored at `~/.gommit/config.json` — never shared, never transmitted beyond you
 → Stage your files first with `git add .`
 
 **"invalid provider"**
-→ Supported providers: `groq`, `anthropic`, `openai`
+→ Supported: `groq`, `anthropic`, `openai`, `gemini`, `ollama`
 
 **"error fetching models"**
 → API key may be invalid. Run `gommit update` → option 3 to fix it.
 
 **"rate limit exceeded"**
-→ Wait a moment or switch to a different provider with `gommit update`.
+→ Wait a moment or switch provider with `gommit update`.
 
 **"model returned empty response"**
-→ Selected model may not support chat. Run `gommit update` → option 2 and pick a different model .
+→ Model may not support chat. Run `gommit update` → option 2 and pick a different model.
 
 **"could not reach provider"**
 → Check your internet connection or try again later.
+
+**"ollama not running"**
+→ Start ollama with `ollama serve` then try again.
+
+**"no models found" (ollama)**
+→ Pull a model first with `ollama pull llama3`
 
 ---
 
 ## Security
 
 - API keys stored at `~/.gommit/config.json` with `0600` permissions — owner read only
-- Git diffs are sent **only** to your chosen AI provider — never to any gommit server
+- Git diffs sent **only** to your chosen AI provider — never to any gommit server
 - gommit has no backend — everything runs entirely on your machine
 - Sensitive data in diffs (passwords, tokens, keys) triggers a warning before sending
 - Prompts are open source — what you see in code is exactly what gets sent to the AI
+- Use Ollama for complete privacy — zero data leaves your machine
 
 ---
 
 ## Uninstall
 
 ```bash
-# step 1 — remove config
+# step 1 — remove config and settings
 gommit uninstall
 
 # step 2 — remove binary
+
 # windows
 del %USERPROFILE%\go\bin\gommit.exe
 
 # mac/linux
 rm /usr/local/bin/gommit
 ```
+
+---
+
+## What's Next
+
+This is `v0.1.0` — the core is working and stable. Here's what's coming:
+
+**Coming soon:**
+- Git hooks integration — runs automatically on every `git commit`, no manual `gommit run` needed
+- Per-repo config — different provider/style per project via `.gommit.json` in repo root
+- Context input — tell gommit why you made the change for more accurate messages
+- PR description generator — `gommit pr` generates full pull request descriptions
+
+**Planned:**
+- Changelog generator — `gommit changelog` from all commits since last tag
+- Homebrew support — `brew install gommit`
+- Team config sharing — commit `.gommit.json` to share style across your team
 
 ---
 
@@ -318,4 +413,4 @@ MIT — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Built with [Cobra](https://github.com/spf13/cobra) · Powered by Groq, Anthropic, OpenAI**
+**Built with [Cobra](https://github.com/spf13/cobra) · Powered by Groq, Gemini, Anthropic, OpenAI, Ollama**
