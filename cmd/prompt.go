@@ -16,7 +16,7 @@ var promptCmd =& cobra.Command{
 	Short: "Test your custom prompt with the current configuration",
 	Run: func(cmd *cobra.Command, args []string) {
 		if !config.Exists() {
-			color.Red("No existing configuration found. Please run 'gommit init' to set up your configuration.")
+			color.Red("No config exists. Please run 'gommit init' to set up your configuration.")
 			return
 		}
 		cfg, err := config.Load()	
@@ -28,9 +28,9 @@ var promptCmd =& cobra.Command{
 		if p == "" {
 			p = "none"
 		}
-		color.White("Current prompt:")
+		color.Cyan("Current prompt:")
 		color.White("%s", p)
-		color.White("Enter a test prompt (or press Enter to use the current one): ")
+		color.Cyan("Enter a test prompt (or press Enter to use the current one): ")
 
 		reader := bufio.NewReader(os.Stdin)
 		input, _ := reader.ReadString('\n')
@@ -39,7 +39,7 @@ var promptCmd =& cobra.Command{
 			p = input
 			cfg.CustomPrompt = input
 		}
-		color.White("Test prompt:")
+		color.Cyan("Test prompt:")
 		color.White("%s", p)
 		err = config.Save(cfg)
 		if err != nil {

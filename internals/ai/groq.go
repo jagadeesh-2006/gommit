@@ -85,14 +85,32 @@ type groqResponse struct {
 }
 
 func (g *GroqProvider) GenerateCommitMessage(diff string) (string, error) {
-	prompt := fmt.Sprintf(`You are a git commit message generator.
-Given the following git diff, generate a concise commit message in conventional commits format.
-Only return the commit message, nothing else.
+	userInstructions := ""
+	if g.CustomPrompt != "" {
+		userInstructions = fmt.Sprintf("Additional instructions from user: %s", g.CustomPrompt)
+	}
 
-Commit style: %s
-Custom prompt: %s
-Git diff:
-%s`, g.CommitStyle, g.CustomPrompt, diff)
+	prompt := fmt.Sprintf(`You are an expert git commit message generator.
+
+	Your job is to analyze the given git diff and generate a single, concise commit message.
+
+	Rules:
+	- Only return the commit message, nothing else
+	- No explanations, no alternatives, no punctuation at the end
+	- Be specific about what changed, not just that something changed
+	- Focus on WHY the change was made if it's clear from the diff
+	- Keep it under 72 characters
+
+	Commit style: %s
+	%s
+
+	Commit style guide:
+	- conventional: feat(scope): description  or  fix(scope): description
+	- simple: short description of what changed
+	- emoji: ✨ description  or  🐛 description  or  📝 description
+
+	Git diff:
+	%s`, g.CommitStyle, userInstructions, diff)
 
 	reqBody := groqRequest{
 		Model: g.Model,
