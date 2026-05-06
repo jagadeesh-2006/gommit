@@ -46,6 +46,18 @@ var runCmd = &cobra.Command{
 			color.Red("Error getting diff: %s", err)
 			return
 		}
+		// sensitive data check
+		if containsSensitiveData(diff) {
+			color.Yellow("Sensitive data detected in diff (passwords, keys, tokens)")
+			color.Yellow("  This diff will be sent to: %s", cfg.Provider)
+			fmt.Print("  Continue anyway? (y/n): ")
+			var confirm string
+			fmt.Scanln(&confirm)
+			if confirm != "y" {
+				color.Yellow("Commit cancelled.")
+				return
+			}
+		}
 		// fmt.Println("Got diff ")
 		// step 3 - get provider
 		provider:= ai.GetProvider(cfg.Provider, cfg.APIKey, cfg.Model, cfg.CommitStyle , cfg.CustomPrompt)
@@ -119,4 +131,20 @@ var runCmd = &cobra.Command{
 				color.Red("Invalid choice. Commit aborted.")
 		}
 	},
+}
+
+
+func containsSensitiveData(diff string) bool {
+    patterns := []string{
+        "password", "secret", "api_key", "token",
+        "private_key", "access_key", "bearer",
+        "credential", "auth", "passwd",
+    }
+    lowerDiff := strings.ToLower(diff)
+    for _, pattern := range patterns {
+        if strings.Contains(lowerDiff, pattern) {
+            return true
+        }
+    }
+    return false
 }

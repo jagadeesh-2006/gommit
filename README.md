@@ -1,7 +1,8 @@
 # gommit ⚡
 
-> AI-powered git commit message generator — single binary, no node required
+> AI-powered git commit message generator — single binary, no Node required
 
+![demo](assets/demo.gif)
 
 ---
 
@@ -42,8 +43,8 @@ go build -o gommit .
 # 4. move to PATH (mac/linux)
 sudo mv gommit /usr/local/bin/
 
-# windows — run directly from folder
-./gommit.exe init
+# windows — move to go bin
+copy gommit.exe %USERPROFILE%\go\bin\
 ```
 
 ---
@@ -55,8 +56,6 @@ sudo mv gommit /usr/local/bin/
 ```bash
 gommit init
 ```
-
-You will be prompted to:
 
 ```
 Enter your AI provider (anthropic, groq, openai): groq
@@ -78,7 +77,7 @@ Custom prompt (optional, press Enter to skip):
 git add .
 ```
 
-### Step 3 — Generate commit message
+### Step 3 — Generate and commit
 
 ```bash
 gommit run
@@ -90,73 +89,115 @@ Suggested commit: feat(auth): add JWT token refresh logic
 [y] commit  [e] edit  [r] regenerate  [n] cancel
 ```
 
-Choose your action:
 - `y` — accept and commit
 - `e` — edit the message then commit
 - `r` — regenerate a new message
-- `n` — cancel
+- `n` — cancel without committing
 
 ---
 
 ## Commands
 
-### `gommit init` (alias: `i`)
-Set up gommit for the first time. Prompts you to:
-- Choose an AI provider (Groq, Anthropic, or OpenAI)
-- Enter your API key
-- Select a model
-- Choose a commit style (conventional, simple, or emoji)
-- Optionally set a custom prompt
+| Command | Alias | Description |
+|---|---|---|
+| `gommit init` | `i` | First time setup wizard |
+| `gommit run` | `r` | Generate AI commit message and commit |
+| `gommit config` | `cfg` | View current configuration |
+| `gommit update` | `u` | Update any configuration value |
+| `gommit prompt` | `p` | Set custom prompt instructions |
+| `gommit undo` | `un` | Undo last commit, keep changes staged |
+| `gommit uninstall` | `remove` | Remove gommit configuration |
+
+---
+
+### `gommit init`
+First time setup. Prompts for provider, API key, model, commit style, and optional custom prompt.
 
 ```bash
 gommit init
 ```
 
-### `gommit run` (alias: `r`)
-Generate an AI-powered commit message for staged changes and optionally commit.
-Requires a prior `gommit init` setup.
+---
+
+### `gommit run`
+Reads your staged diff, sends to AI, suggests a commit message, and commits on approval.
 
 ```bash
+git add .
 gommit run
-```
-
-### `gommit config` (alias: `cfg`)
-View your current configuration settings including provider, model, commit style, and custom prompt.
-
-```bash
-gommit config
-```
-
-### `gommit update` (alias: `u`)
-Update any of your existing configuration settings:
-- Provider, Model, and API key
-- Model only
-- API key only
-- Commit style
-- Custom prompt
-
-```bash
-gommit update
-```
-
-### `gommit prompt` (alias: `p`)
-Test and update your custom prompt. Allows you to review or modify the current custom prompt used for commit message generation.
-
-```bash
-gommit prompt
 ```
 
 ---
 
-## Commands
+### `gommit config`
+View your current saved configuration.
 
-| Command | Shortcut | Description |
-|---|---|---|
-| `gommit init` | `gommit i` | First time setup wizard |
-| `gommit run` | `gommit r` | Generate and commit |
-| `gommit config` | `gommit cfg` | View current configuration |
-| `gommit update` | `gommit u` | Update configuration values |
-| `gommit prompt` | `gommit p` | Set custom prompt instructions |
+```bash
+gommit config
+
+# output:
+# Current Configuration:
+#   Provider:      groq
+#   Model:         llama-3.3-70b-versatile
+#   API Key:       gsk_xxxx****
+#   Commit Style:  conventional
+#   Custom Prompt: none
+```
+
+---
+
+### `gommit update`
+Update any config value without re-running init. Auto-fetches models when switching provider.
+
+```bash
+gommit update
+
+# Select the setting you want to update:
+# 1. Provider + model + API key
+# 2. Model
+# 3. API Key
+# 4. Commit Style
+# 5. Custom Prompt
+```
+
+---
+
+### `gommit prompt`
+Set custom instructions for how you want your commit messages generated.
+
+```bash
+gommit prompt
+
+# Current prompt: none
+# Enter your prompt instructions: keep messages under 50 chars, focus on why not what
+# ✅ Prompt saved.
+```
+
+---
+
+### `gommit undo`
+Undo your last commit and keep changes staged — ready to recommit.
+
+```bash
+gommit undo
+# runs: git reset --soft HEAD~1
+# your staged changes come back, nothing is lost
+```
+
+---
+
+### `gommit uninstall`
+Remove gommit configuration from your machine.
+
+```bash
+gommit uninstall
+
+# Are you sure you want to remove gommit config? (y/n): y
+# ✅ gommit config removed successfully.
+# Note: Binary is still installed. To fully remove:
+#   Windows:   del %USERPROFILE%\go\bin\gommit.exe
+#   Mac/Linux: rm /usr/local/bin/gommit
+```
 
 ---
 
@@ -164,7 +205,7 @@ gommit prompt
 
 | Provider | Free Tier | Models |
 |---|---|---|
-| [Groq](https://console.groq.com) | ✅ Free | Llama 3.3, Mixtral |
+| [Groq](https://console.groq.com) | ✅ Free | Llama 3.3, Mixtral, Gemma |
 | [Anthropic](https://console.anthropic.com) | ❌ Paid | Claude 3.5, Claude 3 |
 | [OpenAI](https://platform.openai.com/api-keys) | ❌ Paid | GPT-4o, GPT-4 Turbo |
 
@@ -180,44 +221,7 @@ gommit prompt
 | `conventional` | `feat(auth): add JWT token refresh logic` |
 | `simple` | `add JWT token refresh logic` |
 | `emoji` | `✨ add JWT token refresh logic` |
-| `any` | your custom style via prompt |
-
----
-
-## Custom Prompt
-
-Give gommit specific instructions for how you want your commit messages:
-
-```bash
-gommit prompt
-```
-
-```
-Current prompt: none
-Enter your prompt instructions: keep messages under 50 chars, focus on why not what
-✅ Prompt saved.
-```
-
-This gets appended to every AI request as additional instructions.
-
----
-
-## Update Configuration
-
-Change any setting without re-running init:
-
-```bash
-gommit update
-```
-
-```
-Select the setting you want to update:
-1. Provider + model + API key
-2. Model
-3. API Key
-4. Commit Style
-5. Custom Prompt
-```
+| `any` | define your own style via custom prompt |
 
 ---
 
@@ -252,13 +256,40 @@ Stored at `~/.gommit/config.json` — never shared, never transmitted beyond you
 **"error fetching models"**
 → API key may be invalid. Run `gommit update` → option 3 to fix it.
 
+**"rate limit exceeded"**
+→ Wait a moment or switch to a different provider with `gommit update`.
+
+**"model returned empty response"**
+→ Selected model may not support chat. Run `gommit update` → option 2 and pick a different model like `llama-3.3-70b-versatile`.
+
+**"could not reach provider"**
+→ Check your internet connection or try again later.
+
 ---
 
 ## Security
 
-- API keys stored at `~/.gommit/config.json` with `0600` permissions (owner read only)
-- Git diffs are only sent to your chosen AI provider
-- No backend — everything runs on your machine
+- API keys stored at `~/.gommit/config.json` with `0600` permissions — owner read only
+- Git diffs are sent **only** to your chosen AI provider — never to any gommit server
+- gommit has no backend — everything runs entirely on your machine
+- Sensitive data in diffs (passwords, tokens, keys) triggers a warning before sending
+- Prompts are open source — what you see in code is exactly what gets sent to the AI
+
+---
+
+## Uninstall
+
+```bash
+# step 1 — remove config
+gommit uninstall
+
+# step 2 — remove binary
+# windows
+del %USERPROFILE%\go\bin\gommit.exe
+
+# mac/linux
+rm /usr/local/bin/gommit
+```
 
 ---
 
