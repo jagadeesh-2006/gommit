@@ -15,24 +15,27 @@ var initCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		color.Cyan("Setting up gommit for the first time...")
 
-		color.White("Enter your AI provider (anthropic, groq, openai): ")
+		color.White("Enter your AI provider (anthropic, groq, openai , ollama, gemini): ")
 		var provider string
 		fmt.Scanln(&provider)
 		if provider == "" {
 			color.Red("Provider cannot be empty")
 			return
 		}
-
-		color.White("Enter your API key: ")
 		var apiKey string
-		fmt.Scanln(&apiKey)
-		if apiKey == "" {
-			color.Red("API key cannot be empty")
-			return
+		if provider == "ollama" {
+			apiKey = "none"
+		} else {
+			color.White("Enter your API key: ")
+			fmt.Scanln(&apiKey)
+			if apiKey == "" {
+				color.Red("API key cannot be empty")
+				return
+			}
 		}
 		p := ai.GetProvider(provider, apiKey, "", "", "")
 		if p == nil {
-			color.Red("Invalid provider. Choose: anthropic, groq, openai")
+			color.Red("Invalid provider. Choose: anthropic, groq, openai, ollama, gemini")
 			return
 		}
 

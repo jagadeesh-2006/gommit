@@ -30,6 +30,20 @@ func GetProvider(name string, apiKey string, model string, style string, customP
 				CommitStyle:  style,
 				CustomPrompt: customPrompt,
 			}
+		case "ollama":
+			return &OllamaProvider{
+				APIKey: apiKey,
+				Model:  model,
+				CommitStyle:  style,
+				CustomPrompt: customPrompt,
+			}
+		case "gemini":
+			return &GeminiProvider{
+				APIKey: apiKey,
+				Model:  model,
+				CommitStyle:  style,
+				CustomPrompt: customPrompt,
+			}
 		default:
 			return nil
 	}
