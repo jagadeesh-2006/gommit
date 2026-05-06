@@ -78,12 +78,20 @@ var runCmd = &cobra.Command{
 				color.White("Enter your commit message: ")
 				customMessage, _ := reader.ReadString('\n')
 				customMessage = strings.TrimSpace(customMessage)
-				err := git.Commit(customMessage)
-				if err != nil {
-					color.Red("Error committing changes: %s", err)
-					return
+				color.White("Do you want to use this custom commit message? (y/n): ")
+				var newChoice string
+				fmt.Scanln(&newChoice)
+				if newChoice == "y" {
+					err := git.Commit(customMessage)
+					if err != nil {
+						color.Red("Error committing changes: %s", err)
+						return
+					}
+					color.Green("Changes committed with message: %s", customMessage)
+				} else {
+					color.Yellow("Commit aborted.")
 				}
-				color.Green("Changes committed with message: %s", customMessage)
+				
 			case "r":
 				color.White("Regenerating commit message...")
 				newMessage, err := provider.GenerateCommitMessage(diff)
