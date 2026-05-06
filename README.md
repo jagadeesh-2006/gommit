@@ -260,7 +260,7 @@ Stored at `~/.gommit/config.json` — never shared, never transmitted beyond you
 → Wait a moment or switch to a different provider with `gommit update`.
 
 **"model returned empty response"**
-→ Selected model may not support chat. Run `gommit update` → option 2 and pick a different model like `llama-3.3-70b-versatile`.
+→ Selected model may not support chat. Run `gommit update` → option 2 and pick a different model .
 
 **"could not reach provider"**
 → Check your internet connection or try again later.
