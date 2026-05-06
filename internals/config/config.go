@@ -77,3 +77,12 @@ func Exists() bool {
 	_, err = os.Stat(path)
 	return err == nil
 }
+
+func Remove() error {
+	home, err := os.UserHomeDir()
+    if err != nil {
+        return err
+    }
+    path := filepath.Join(home, ".gommit")
+    return os.RemoveAll(path)
+}
