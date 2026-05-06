@@ -96,8 +96,9 @@ func (g *GroqProvider) GenerateCommitMessage(diff string) (string, error) {
 
 	Rules:
 	- Only return the commit message, nothing else
+	- Be specific about what changed, not just that something changed
 	- Focus on WHY the change was made if it's clear from the diff
-	- Keep it under 90 characters
+	- Keep it under 100 characters
 
 	Commit style: %s
 	%s

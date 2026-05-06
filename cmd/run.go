@@ -22,17 +22,17 @@ import (
 )
 
 var runCmd = &cobra.Command{
-	Use:   "run",
+	Use:     "run",
 	Aliases: []string{"r"},
-	Short: "Generate and commit messages",
+	Short:   "Generate and commit messages",
 	Run: func(cmd *cobra.Command, args []string) {
-		// fmt.Println("Running gommit...")	
+		// fmt.Println("Running gommit...")
 		// step 1 - load config
 		if !config.Exists() {
 			color.Red(" Config not found — run `gommit init` first")
 			return
 		}
-		
+
 		// fmt.Println("Config exists ✓")
 		cfg, err := config.Load()
 		if err != nil {
@@ -60,7 +60,7 @@ var runCmd = &cobra.Command{
 		}
 		// fmt.Println("Got diff ")
 		// step 3 - get provider
-		provider:= ai.GetProvider(cfg.Provider, cfg.APIKey, cfg.Model, cfg.CommitStyle , cfg.CustomPrompt)
+		provider := ai.GetProvider(cfg.Provider, cfg.APIKey, cfg.Model, cfg.CommitStyle, cfg.CustomPrompt)
 		if provider == nil {
 			color.Red("Error getting AI provider:")
 			return
@@ -78,73 +78,72 @@ var runCmd = &cobra.Command{
 		fmt.Scanln(&choice)
 
 		switch choice {
-			case "y":
-				err := git.Commit(message)
+		case "y":
+			err := git.Commit(message)
+			if err != nil {
+				color.Red("Error committing changes: %s", err)
+				return
+			}
+			color.Green("Changes committed with message: %s", message)
+		case "e":
+			reader := bufio.NewReader(os.Stdin)
+			color.White("Enter your commit message: ")
+			customMessage, _ := reader.ReadString('\n')
+			customMessage = strings.TrimSpace(customMessage)
+			color.White("Do you want to use this custom commit message? (y/n): ")
+			var newChoice string
+			fmt.Scanln(&newChoice)
+			if newChoice == "y" {
+				err := git.Commit(customMessage)
 				if err != nil {
 					color.Red("Error committing changes: %s", err)
 					return
 				}
-				color.Green("Changes committed with message: %s", message)
-			case "e":
-				reader := bufio.NewReader(os.Stdin)
-				color.White("Enter your commit message: ")
-				customMessage, _ := reader.ReadString('\n')
-				customMessage = strings.TrimSpace(customMessage)
-				color.White("Do you want to use this custom commit message? (y/n): ")
-				var newChoice string
-				fmt.Scanln(&newChoice)
-				if newChoice == "y" {
-					err := git.Commit(customMessage)
-					if err != nil {
-						color.Red("Error committing changes: %s", err)
-						return
-					}
-					color.Green("Changes committed with message: %s", customMessage)
-				} else {
-					color.Yellow("Commit aborted.")
-				}
-				
-			case "r":
-				color.White("Regenerating commit message...")
-				newMessage, err := provider.GenerateCommitMessage(diff)
+				color.Green("Changes committed with message: %s", customMessage)
+			} else {
+				color.Yellow("Commit aborted.")
+			}
+
+		case "r":
+			color.Cyan("Regenerating commit message...")
+			newMessage, err := provider.GenerateCommitMessage(diff)
+			if err != nil {
+				color.Red("Error generating commit message: %s", err)
+				return
+			}
+			color.Cyan("Regenerated commit message: %s", newMessage)
+			color.White("Do you want to use this commit message? (y/n): ")
+			var newChoice string
+			fmt.Scanln(&newChoice)
+			if newChoice == "y" {
+				err := git.Commit(newMessage)
 				if err != nil {
-					color.Red("Error generating commit message: %s", err)
+					color.Red("Error committing changes: %s", err)
 					return
 				}
-				color.Cyan("Regenerated commit message: %s", newMessage)
-				color.White("Do you want to use this commit message? (y/n): ")
-				var newChoice string
-				fmt.Scanln(&newChoice)
-				if newChoice == "y" {
-					err := git.Commit(newMessage)
-					if err != nil {
-						color.Red("Error committing changes: %s", err)
-						return
-					}
-					color.Green("Changes committed with message: %s", newMessage)
-				} else {
-					color.Yellow("Commit aborted.")
-				}
-			case "n":
+				color.Green("Changes committed with message: %s", newMessage)
+			} else {
 				color.Yellow("Commit aborted.")
-			default:
-				color.Red("Invalid choice. Commit aborted.")
+			}
+		case "n":
+			color.Yellow("Commit aborted.")
+		default:
+			color.Red("Invalid choice. Commit aborted.")
 		}
 	},
 }
 
-
 func containsSensitiveData(diff string) bool {
-    patterns := []string{
-        "password", "secret", "api_key", "token",
-        "private_key", "access_key", "bearer",
-        "credential", "auth", "passwd",
-    }
-    lowerDiff := strings.ToLower(diff)
-    for _, pattern := range patterns {
-        if strings.Contains(lowerDiff, pattern) {
-            return true
-        }
-    }
-    return false
+	patterns := []string{
+		"password", "secret", "api_key", "token",
+		"private_key", "access_key", "bearer",
+		"credential", "auth", "passwd",
+	}
+	lowerDiff := strings.ToLower(diff)
+	for _, pattern := range patterns {
+		if strings.Contains(lowerDiff, pattern) {
+			return true
+		}
+	}
+	return false
 }

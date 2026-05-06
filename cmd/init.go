@@ -9,11 +9,11 @@ import (
 )
 
 var initCmd = &cobra.Command{
-	Use:   "init",
+	Use:     "init",
 	Aliases: []string{"i"},
-	Short: "Setup gommit for the first time",
+	Short:   "Setup gommit for the first time",
 	Run: func(cmd *cobra.Command, args []string) {
-		color.White("Setting up gommit for the first time...")
+		color.Cyan("Setting up gommit for the first time...")
 
 		color.White("Enter your AI provider (anthropic, groq, openai): ")
 		var provider string
@@ -30,22 +30,22 @@ var initCmd = &cobra.Command{
 			color.Red("API key cannot be empty")
 			return
 		}
-		p := ai.GetProvider(provider, apiKey, "", "","")
+		p := ai.GetProvider(provider, apiKey, "", "", "")
 		if p == nil {
 			color.Red("Invalid provider. Choose: anthropic, groq, openai")
 			return
 		}
 
-		color.White("Fetching models...")
+		color.Cyan("Fetching models...")
 		models, err := p.FetchModels()
 		if err != nil {
 			color.Red("Error fetching models: %s", err)
 			return
 		}
 
-		color.White("Available models:")
+		color.Blue("Available models:")
 		for i, m := range models {
-			color.White("%d. %s", i+1, m)
+			color.Blue("%d. %s", i+1, m)
 		}
 
 		color.White("Select a model number: ")
@@ -66,13 +66,12 @@ var initCmd = &cobra.Command{
 			style = "conventional"
 		}
 
-
 		cfg := &config.Config{
-			Version:     "1",
-			Provider:    provider,
-			Model:       selected,
-			APIKey:      apiKey,
-			CommitStyle: style,
+			Version:      "1",
+			Provider:     provider,
+			Model:        selected,
+			APIKey:       apiKey,
+			CommitStyle:  style,
 			CustomPrompt: "",
 		}
 
