@@ -1,9 +1,12 @@
-# gommit ⚡
+<div align="center">
+
+![demo](assets/demo.png)
+
+# Gommit ⚡
 
 > AI-powered git commit message generator — single binary, no Node required
 
-![demo](assets/demo.gif)
-
+</div>
 ---
 
 ## The Problem
