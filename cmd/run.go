@@ -1,11 +1,3 @@
-//1. check config exists → if not, error
-// 2. load config
-// 3. get staged diff
-// 4. get provider using config
-// 5. generate commit message
-// 6. show options y/e/r/n
-// 7. if y → run git commit -m "message"
-
 package cmd
 
 import (
@@ -13,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
+	"regexp"
 	"github.com/fatih/color"
 	"github.com/jagadeesh-2006/gommit/internals/ai"
 	"github.com/jagadeesh-2006/gommit/internals/config"
@@ -134,16 +126,34 @@ var runCmd = &cobra.Command{
 }
 
 func containsSensitiveData(diff string) bool {
-	patterns := []string{
-		"password", "secret", "api_key", "token",
-		"private_key", "access_key", "bearer",
-		"credential", "auth", "passwd",
-	}
-	lowerDiff := strings.ToLower(diff)
-	for _, pattern := range patterns {
-		if strings.Contains(lowerDiff, pattern) {
-			return true
-		}
-	}
-	return false
+    // only scan added lines
+    addedLines := []string{}
+    for _, line := range strings.Split(diff, "\n") {
+        if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
+            addedLines = append(addedLines, line)
+        }
+    }
+    addedContent := strings.Join(addedLines, "\n")
+
+    patterns := []string{
+        // assignment patterns with actual values
+        `(?i)(password|passwd|secret|api_key|apikey|access_key)\s*[:=]\s*["']?[a-zA-Z0-9+/]{8,}`,
+        // known API key formats
+        `sk-[a-zA-Z0-9]{20,}`,
+        `gsk_[a-zA-Z0-9]{20,}`,
+        `AIza[a-zA-Z0-9]{20,}`,
+        `sk-ant-[a-zA-Z0-9]{20,}`,
+        // bearer tokens
+        `(?i)Bearer\s+[a-zA-Z0-9\-._~+/]{20,}`,
+        // private keys
+        `-----BEGIN (RSA |EC )?PRIVATE KEY-----`,
+    }
+
+    for _, pattern := range patterns {
+        matched, _ := regexp.MatchString(pattern, addedContent)
+        if matched {
+            return true
+        }
+    }
+    return false
 }

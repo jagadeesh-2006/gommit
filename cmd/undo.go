@@ -8,6 +8,7 @@ import (
 
 var undoCmd = &cobra.Command{
 	Use:   "undo",
+	Aliases: []string{"un"},
 	Short: "Undo the last commit",
 	Run: func(cmd *cobra.Command, args []string) {
 		

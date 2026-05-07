@@ -30,7 +30,7 @@ Every existing AI commit tool requires Node.js — which means npm, a runtime, a
 ### Windows
 
 ```bash
-# requires Go installed — https://golang.org/dl/
+# requires Go installed — https://go.dev/dl/
 go install github.com/jagadeesh-2006/gommit@latest
 ```
 
@@ -48,7 +48,7 @@ copy gommit.exe %USERPROFILE%\go\bin\
 ### macOS
 
 ```bash
-# requires Go installed — https://golang.org/dl/
+# requires Go installed — https://go.dev/dl/
 go install github.com/jagadeesh-2006/gommit@latest
 ```
 
@@ -68,7 +68,7 @@ sudo mv gommit /usr/local/bin/
 ### Linux
 
 ```bash
-# requires Go installed — https://golang.org/dl/
+# requires Go installed — https://go.dev/dl/
 go install github.com/jagadeesh-2006/gommit@latest
 ```
 
@@ -137,7 +137,7 @@ Suggested commit: feat(auth): add JWT token refresh logic
 ```
 
 - `y` — accept and commit
-- `e` — edit the message then commit
+- `e` — edit the message that means the commit msg will be wt u write here and then commits
 - `r` — regenerate a new suggestion
 - `n` — cancel without committing
 
@@ -194,7 +194,7 @@ Current Configuration:
 ---
 
 ### `gommit update`
-Update any config value without re-running init. Automatically fetches models when switching provider.
+Update any config value without re-running init.
 
 ```bash
 gommit update
@@ -263,7 +263,6 @@ Note: Binary is still installed. To fully remove:
 | Anthropic | ❌ Paid | Required | Yes | [console.anthropic.com](https://console.anthropic.com) |
 | OpenAI | ❌ Paid | Required | Yes | [platform.openai.com](https://platform.openai.com/api-keys) |
 
-> **New to this?** Start with Groq — completely free, no credit card required.
 
 > **Privacy focused?** Use Ollama — runs fully offline on your machine, nothing leaves your computer.
 
@@ -379,7 +378,6 @@ rm /usr/local/bin/gommit
 This is `v0.1.0` — the core is working and stable. Here's what's coming:
 
 **Coming soon:**
-- Git hooks integration — runs automatically on every `git commit`, no manual `gommit run` needed
 - Per-repo config — different provider/style per project via `.gommit.json` in repo root
 - Context input — tell gommit why you made the change for more accurate messages
 - PR description generator — `gommit pr` generates full pull request descriptions
