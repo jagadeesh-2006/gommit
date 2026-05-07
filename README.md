@@ -137,7 +137,7 @@ Suggested commit: feat(auth): add JWT token refresh logic
 ```
 
 - `y` — accept and commit
-- `e` — edit the message that means the commit msg will be wt u write here and then commits
+- `e` — edit the message then commit with your version
 - `r` — regenerate a new suggestion
 - `n` — cancel without committing
 
@@ -375,17 +375,21 @@ rm /usr/local/bin/gommit
 
 ## What's Next
 
-This is `v0.1.0` — the core is working and stable. Here's what's coming:
+This is `v0.1.0` — the core is working and stable.
 
 **Coming soon:**
 - Per-repo config — different provider/style per project via `.gommit.json` in repo root
 - Context input — tell gommit why you made the change for more accurate messages
 - PR description generator — `gommit pr` generates full pull request descriptions
-
-**Planned:**
-- Changelog generator — `gommit changelog` from all commits since last tag
+- Commit feedback — when you cancel with `n`, gommit learns what you didn't like and improves the next suggestion
 - Homebrew support — `brew install gommit`
 - Team config sharing — commit `.gommit.json` to share style across your team
+- Git hooks integration — runs automatically on every `git commit`, no manual `gommit run` needed
+- Smart regeneration — avoids repeating the same message when you press `r`
+
+
+**Have an idea or found a bug?**
+→ [Open an issue](https://github.com/jagadeesh-2006/gommit/issues) — all suggestions welcome
 
 ---
 
