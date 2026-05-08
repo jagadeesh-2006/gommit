@@ -97,8 +97,11 @@ var runCmd = &cobra.Command{
 			}
 
 		case "r":
+			oldmsg := message
+			prompt := fmt.Sprintf("%s\n\nThe previous commit message was:\n%s\n\n generate a new commit message that is better from the previous one but more specific.", diff, oldmsg)
+			
 			color.Cyan("Regenerating commit message...")
-			newMessage, err := provider.GenerateCommitMessage(diff)
+			newMessage, err := provider.GenerateCommitMessage(prompt)
 			if err != nil {
 				color.Red("Error generating commit message: %s", err)
 				return

@@ -57,26 +57,14 @@ func (g *GeminiProvider) FetchModels() ([]string, error) {
 		return nil, err
 	}
 
-	// // filter chat compatible models only
-	// allowed := []string{"gemini"}
-	// models := []string{}
-	// for _, m := range result.Models {
-	// 	// name comes as "models/gemini-1.5-flash" — extract just the model ID
-	// 	parts := strings.Split(m.Name, "/")
-	// 	id := parts[len(parts)-1]
-	// 	for _, a := range allowed {
-	// 		if strings.Contains(strings.ToLower(id), a) {
-	// 			models = append(models, id)
-	// 			break
-	// 		}
-	// 	}
-	// }
-	// Only use models known to have high quotas for text/code tasks in 2026
 	allowedModels := map[string]bool{
-		"gemini-2.5-flash":      true, // Fast, high quota
-		"gemini-2.5-pro":        true, // Smartest for large diffs
-		"gemini-flash-latest":   true, // Points to the newest stable Flash
-		"gemini-2.5-flash-lite": true, // Lowest latency for small fixes
+		"gemini-2.5-flash": true, 
+		"gemini-2.5-pro":   true, 
+		"gemini-2.5-flash-lite": true, 
+		"gemini-3.1-flash-lite": true, 
+		"gemini-3.1-pro":        true, 
+		"gemini-3-flash":        true, 
+		"gemini-flash-latest":   true, 
 	}
 
 	models := []string{}
