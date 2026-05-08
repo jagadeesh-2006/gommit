@@ -6,14 +6,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 	"strings"
+	"time"
+
+	"github.com/jagadeesh-2006/gommit/internals/commitstyle"
 )
 
 type GroqProvider struct {
-	APIKey string
-	Model  string
-	CommitStyle string
+	APIKey       string
+	Model        string
+	CommitStyle  string
 	CustomPrompt string
 }
 
@@ -32,7 +34,7 @@ func (g *GroqProvider) FetchModels() ([]string, error) {
 	req.Header.Set("Authorization", "Bearer "+g.APIKey)
 
 	client := &http.Client{
-		Timeout: 15* time.Second,
+		Timeout: 15 * time.Second,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -52,16 +54,15 @@ func (g *GroqProvider) FetchModels() ([]string, error) {
 
 	allowed := []string{"llama", "mixtral", "gemma", "qwen", "deepseek"}
 
-    models := []string{}
-    for _, m := range result.Data {
-        for _, a := range allowed {
-            if strings.Contains(strings.ToLower(m.ID), a) {
-                models = append(models, m.ID)
-                break
-            }
-        }
-    }
-	
+	models := []string{}
+	for _, m := range result.Data {
+		for _, a := range allowed {
+			if strings.Contains(strings.ToLower(m.ID), a) {
+				models = append(models, m.ID)
+				break
+			}
+		}
+	}
 
 	return models, nil
 }
@@ -87,12 +88,23 @@ type groqResponse struct {
 func (g *GroqProvider) GenerateCommitMessage(diff string) (string, error) {
 	userInstructions := ""
 	if g.CustomPrompt != "" {
-		userInstructions = fmt.Sprintf("Additional instructions from user: %s", g.CustomPrompt)
+		userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", g.CustomPrompt)
+	}
+
+	styleGuide := commitstyle.GetStyleGuide(g.CommitStyle)
+	style := commitstyle.GetStyle(g.CommitStyle)
+
+	styleExamples := ""
+	if len(style.Examples) > 0 {
+		styleExamples = "Examples:\n"
+		for _, example := range style.Examples {
+			styleExamples += fmt.Sprintf("  - %s\n", example)
+		}
 	}
 
 	prompt := fmt.Sprintf(`You are an expert git commit message generator.
 
-	Your job is to analyze the given git diff and generate a single, concise commit message.
+	Your job is to analyze the given git diff and generate a single commit message.
 
 	Rules:
 	- Only return the commit message, nothing else
@@ -102,14 +114,10 @@ func (g *GroqProvider) GenerateCommitMessage(diff string) (string, error) {
 
 	Commit style: %s
 	%s
-
-	Commit style guide:
-	- conventional: feat(scope): description  or  fix(scope): description
-	- simple: short description of what changed
-	- emoji: ✨ description  or  🐛 description  or  📝 description
-
+	%s
+	%s
 	Git diff:
-	%s`, g.CommitStyle, userInstructions, diff)
+	%s`, g.CommitStyle, styleGuide, styleExamples,userInstructions, diff)
 
 	reqBody := groqRequest{
 		Model: g.Model,

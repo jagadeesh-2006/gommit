@@ -8,12 +8,14 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/jagadeesh-2006/gommit/internals/commitstyle"
 )
 
 type GeminiProvider struct {
-	APIKey      string
-	Model       string
-	CommitStyle string
+	APIKey       string
+	Model        string
+	CommitStyle  string
 	CustomPrompt string
 }
 
@@ -25,13 +27,13 @@ type geminiModelsResponse struct {
 
 func (g *GeminiProvider) FetchModels() ([]string, error) {
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models?key=%s", g.APIKey)
-	
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	client := &http.Client{Timeout: 15 * time.Second}
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("could not reach Gemini — check internet connection")
@@ -55,18 +57,35 @@ func (g *GeminiProvider) FetchModels() ([]string, error) {
 		return nil, err
 	}
 
-	// filter chat compatible models only
-	allowed := []string{"gemini"}
+	// // filter chat compatible models only
+	// allowed := []string{"gemini"}
+	// models := []string{}
+	// for _, m := range result.Models {
+	// 	// name comes as "models/gemini-1.5-flash" — extract just the model ID
+	// 	parts := strings.Split(m.Name, "/")
+	// 	id := parts[len(parts)-1]
+	// 	for _, a := range allowed {
+	// 		if strings.Contains(strings.ToLower(id), a) {
+	// 			models = append(models, id)
+	// 			break
+	// 		}
+	// 	}
+	// }
+	// Only use models known to have high quotas for text/code tasks in 2026
+	allowedModels := map[string]bool{
+		"gemini-2.5-flash":      true, // Fast, high quota
+		"gemini-2.5-pro":        true, // Smartest for large diffs
+		"gemini-flash-latest":   true, // Points to the newest stable Flash
+		"gemini-2.5-flash-lite": true, // Lowest latency for small fixes
+	}
+
 	models := []string{}
 	for _, m := range result.Models {
-		// name comes as "models/gemini-1.5-flash" — extract just the model ID
 		parts := strings.Split(m.Name, "/")
 		id := parts[len(parts)-1]
-		for _, a := range allowed {
-			if strings.Contains(strings.ToLower(id), a) {
-				models = append(models, id)
-				break
-			}
+
+		if allowedModels[id] {
+			models = append(models, id)
 		}
 	}
 
@@ -100,29 +119,37 @@ type geminiResponse struct {
 func (g *GeminiProvider) GenerateCommitMessage(diff string) (string, error) {
 	userInstructions := ""
 	if g.CustomPrompt != "" {
-		userInstructions = fmt.Sprintf("Additional instructions from user: %s", g.CustomPrompt)
+		userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", g.CustomPrompt)
+	}
+
+	styleGuide := commitstyle.GetStyleGuide(g.CommitStyle)
+	style := commitstyle.GetStyle(g.CommitStyle)
+
+	styleExamples := ""
+	if len(style.Examples) > 0 {
+		styleExamples = "Examples:\n"
+		for _, example := range style.Examples {
+			styleExamples += fmt.Sprintf("  - %s\n", example)
+		}
 	}
 
 	prompt := fmt.Sprintf(`You are an expert git commit message generator.
 
-Your job is to analyze the given git diff and generate a single, concise commit message.
+	Your job is to analyze the given git diff and generate a single, concise commit message.
 
-Rules:
-- Only return the commit message, nothing else
-- Be specific about what changed, not just that something changed
-- Focus on WHY the change was made if it's clear from the diff
-- Keep it under 100 characters
+	Rules:
+	- Only return the commit message, nothing else
+	- Be specific about what changed, not just that something changed
+	- Focus on WHY the change was made if it's clear from the diff
+	- Keep it under 100 characters
 
-Commit style: %s
-%s
-
-Commit style guide:
-- conventional: feat(scope): description  or  fix(scope): description
-- simple: short description of what changed
-- emoji: ✨ description  or  🐛 description  or  📝 description
-Git diff:
-%s
-`, g.CommitStyle, userInstructions, diff)
+	Commit style: %s
+	%s
+	%s
+	%s
+	Git diff:
+	%s
+	`, g.CommitStyle, styleGuide, styleExamples,userInstructions, diff)
 
 	reqBody := geminiRequest{
 		Contents: []geminiContent{

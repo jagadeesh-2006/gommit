@@ -8,12 +8,14 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/jagadeesh-2006/gommit/internals/commitstyle"
 )
 
 type OllamaProvider struct {
-	APIKey      string // not used but kept for interface consistency
-	Model       string
-	CommitStyle string
+	APIKey       string // not used but kept for interface consistency
+	Model        string
+	CommitStyle  string
 	CustomPrompt string
 }
 
@@ -61,9 +63,9 @@ func (o *OllamaProvider) FetchModels() ([]string, error) {
 // ---- GenerateCommitMessage ----
 
 type ollamaRequest struct {
-	Model    string         `json:"model"`
+	Model    string          `json:"model"`
 	Messages []ollamaMessage `json:"messages"`
-	Stream   bool           `json:"stream"`
+	Stream   bool            `json:"stream"`
 }
 
 type ollamaMessage struct {
@@ -80,30 +82,37 @@ type ollamaResponse struct {
 func (o *OllamaProvider) GenerateCommitMessage(diff string) (string, error) {
 	userInstructions := ""
 	if o.CustomPrompt != "" {
-		userInstructions = fmt.Sprintf("Additional instructions from user: %s", o.CustomPrompt)
+		userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", o.CustomPrompt)
+	}
+
+	styleGuide := commitstyle.GetStyleGuide(o.CommitStyle)
+	style := commitstyle.GetStyle(o.CommitStyle)
+
+	styleExamples := ""
+	if len(style.Examples) > 0 {
+		styleExamples = "Examples:\n"
+		for _, example := range style.Examples {
+			styleExamples += fmt.Sprintf("  - %s\n", example)
+		}
 	}
 
 	prompt := fmt.Sprintf(`You are an expert git commit message generator.
 
-Your job is to analyze the given git diff and generate a single, concise commit message.
+	Your job is to analyze the given git diff and generate a single, concise commit message.
 
-Rules:
-- Only return the commit message, nothing else
-- Be specific about what changed, not just that something changed
-- Focus on WHY the change was made if it's clear from the diff
-- Keep it under 100 characters
+	Rules:
+	- Only return the commit message, nothing else
+	- Be specific about what changed, not just that something changed
+	- Focus on WHY the change was made if it's clear from the diff
+	- Keep it under 100 characters
 
-Commit style: %s
-%s
-
-Commit style guide:
-- conventional: feat(scope): description  or  fix(scope): description
-- simple: short description of what changed
-- emoji: ✨ description  or  🐛 description  or  📝 description
-
-Git diff :
-%s
-`, o.CommitStyle, userInstructions, diff)
+	Commit style: %s
+	%s
+	%s
+	%s
+	Git diff:
+	%s
+	`, o.CommitStyle, styleGuide, styleExamples,userInstructions, diff)
 
 	reqBody := ollamaRequest{
 		Model: o.Model,

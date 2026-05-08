@@ -6,14 +6,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 	"strings"
+	"time"
+
+	"github.com/jagadeesh-2006/gommit/internals/commitstyle"
 )
 
 type OpenAIProvider struct {
-	APIKey string
-	Model  string
-	CommitStyle string
+	APIKey       string
+	Model        string
+	CommitStyle  string
 	CustomPrompt string
 }
 
@@ -32,7 +34,7 @@ func (g *OpenAIProvider) FetchModels() ([]string, error) {
 	req.Header.Set("Authorization", "Bearer "+g.APIKey)
 
 	client := &http.Client{
-		Timeout: 15* time.Second,
+		Timeout: 15 * time.Second,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -65,7 +67,7 @@ func (g *OpenAIProvider) FetchModels() ([]string, error) {
 }
 
 type openAIRequest struct {
-	Model    string        `json:"model"`
+	Model    string          `json:"model"`
 	Messages []openAIMessage `json:"messages"`
 }
 
@@ -85,7 +87,18 @@ type openAIResponse struct {
 func (g *OpenAIProvider) GenerateCommitMessage(diff string) (string, error) {
 	userInstructions := ""
 	if g.CustomPrompt != "" {
-		userInstructions = fmt.Sprintf("Additional instructions from user: %s", g.CustomPrompt)
+		userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", g.CustomPrompt)
+	}
+
+	styleGuide := commitstyle.GetStyleGuide(g.CommitStyle)
+	style := commitstyle.GetStyle(g.CommitStyle)
+
+	styleExamples := ""
+	if len(style.Examples) > 0 {
+		styleExamples = "Examples:\n"
+		for _, example := range style.Examples {
+			styleExamples += fmt.Sprintf("  - %s\n", example)
+		}
 	}
 
 	prompt := fmt.Sprintf(`You are an expert git commit message generator.
@@ -100,14 +113,10 @@ func (g *OpenAIProvider) GenerateCommitMessage(diff string) (string, error) {
 
 	Commit style: %s
 	%s
-
-	Commit style guide:
-	- conventional: feat(scope): description  or  fix(scope): description
-	- simple: short description of what changed
-	- emoji: ✨ description  or  🐛 description  or  📝 description
-
+	%s
+	%s
 	Git diff:
-	%s`, g.CommitStyle, userInstructions, diff)
+	%s`, g.CommitStyle, styleGuide, styleExamples,userInstructions, diff)
 
 	reqBody := openAIRequest{
 		Model: g.Model,
@@ -138,12 +147,12 @@ func (g *OpenAIProvider) GenerateCommitMessage(diff string) (string, error) {
 	}
 	defer resp.Body.Close()
 	switch resp.StatusCode {
-		case 429:
-			return "", fmt.Errorf("rate limit exceeded: %s", resp.Status)
-		case 401:
-			return "", fmt.Errorf("invalid API key - run `gommit update` to set valid key")
-		case 500, 502, 503:
-			return "", fmt.Errorf("provider is down try again later")
+	case 429:
+		return "", fmt.Errorf("rate limit exceeded: %s", resp.Status)
+	case 401:
+		return "", fmt.Errorf("invalid API key - run `gommit update` to set valid key")
+	case 500, 502, 503:
+		return "", fmt.Errorf("provider is down try again later")
 	}
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
