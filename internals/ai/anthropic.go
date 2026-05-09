@@ -88,7 +88,7 @@ type anthropicResponse struct {
 	} `json:"content"`
 }
 
-func (a *AnthropicProvider) GenerateCommitMessage(diff string, context string) (string, error) {
+func (a *AnthropicProvider) GenerateCommitMessage(diff string, context string, previousMessage string) (string, error) {
 	userInstructions := ""
 	if a.CustomPrompt != "" {
 		userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", a.CustomPrompt)
@@ -97,6 +97,11 @@ func (a *AnthropicProvider) GenerateCommitMessage(diff string, context string) (
 	contextInfo := ""
 	if context != "" {
 		contextInfo = fmt.Sprintf("Context about changes: %s\n", context)
+	}
+
+	previousSection := ""
+	if previousMessage != "" {
+		previousSection = fmt.Sprintf("Previous message (do NOT repeat or rephrase this): %s\nTry a completely different angle.\n", previousMessage)
 	}
 
 	styleGuide := commitstyle.GetStyleGuide(a.CommitStyle)
@@ -125,8 +130,9 @@ func (a *AnthropicProvider) GenerateCommitMessage(diff string, context string) (
     %s
     %s
     %s
+    %s
     Git diff:
-    %s`, a.CommitStyle, styleGuide, styleExamples, userInstructions, contextInfo, diff)
+    %s`, a.CommitStyle, styleGuide, styleExamples, userInstructions, contextInfo, previousSection, diff)
 
 	reqBody := anthropicRequest{
 		Model:     a.Model,

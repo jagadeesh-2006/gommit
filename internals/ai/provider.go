@@ -2,7 +2,7 @@ package ai
 
 type Provider interface {
 	FetchModels() ([]string, error) // Fetch available models
-	GenerateCommitMessage(diff string, context string) (string, error)
+	GenerateCommitMessage(diff string, context string, previousMessage string) (string, error)
 }
 
 func GetProvider(name string, apiKey string, model string, style string, customPrompt string) Provider {

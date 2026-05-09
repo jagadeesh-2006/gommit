@@ -59,7 +59,7 @@ var runCmd = &cobra.Command{
 			contextInput, _ = reader.ReadString('\n')
 			contextInput = strings.TrimSpace(contextInput)
 		}
-		
+
 		// get provider
 		provider := ai.GetProvider(cfg.Provider, cfg.APIKey, cfg.Model, cfg.CommitStyle, cfg.CustomPrompt)
 		if provider == nil {
@@ -67,7 +67,7 @@ var runCmd = &cobra.Command{
 			return
 		}
 		// generate commit message
-		message, err := provider.GenerateCommitMessage(diff, contextInput)
+		message, err := provider.GenerateCommitMessage(diff, contextInput, "")
 		if err != nil {
 			color.Red("Error generating commit message: %s", err)
 			return
@@ -105,11 +105,8 @@ var runCmd = &cobra.Command{
 			}
 
 		case "r":
-			oldmsg := message
-			prompt := fmt.Sprintf("%s\n\nThe previous commit message was:\n%s\n\n generate a new commit message that is better from the previous one but more specific.", diff, oldmsg)
-			
 			color.Cyan("Regenerating commit message...")
-			newMessage, err := provider.GenerateCommitMessage(prompt, contextInput)
+			newMessage, err := provider.GenerateCommitMessage(diff, contextInput, message)
 			if err != nil {
 				color.Red("Error generating commit message: %s", err)
 				return
@@ -137,36 +134,36 @@ var runCmd = &cobra.Command{
 }
 
 func containsSensitiveData(diff string) bool {
-    // only scan added lines
-    addedLines := []string{}
-    for _, line := range strings.Split(diff, "\n") {
-        if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
-            addedLines = append(addedLines, line)
-        }
-    }
-    addedContent := strings.Join(addedLines, "\n")
+	// only scan added lines
+	addedLines := []string{}
+	for _, line := range strings.Split(diff, "\n") {
+		if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
+			addedLines = append(addedLines, line)
+		}
+	}
+	addedContent := strings.Join(addedLines, "\n")
 
-    patterns := []string{
-        // assignment patterns with actual values
-        `(?i)(password|passwd|secret|api_key|apikey|access_key)\s*[:=]\s*["']?[a-zA-Z0-9+/]{8,}`,
-        // known API key formats
-        `sk-[a-zA-Z0-9]{20,}`,
-        `gsk_[a-zA-Z0-9]{20,}`,
-        `AIza[a-zA-Z0-9]{20,}`,
-        `sk-ant-[a-zA-Z0-9]{20,}`,
-        // bearer tokens
-        `(?i)Bearer\s+[a-zA-Z0-9\-._~+/]{20,}`,
-        // private keys
-        `-----BEGIN (RSA |EC )?PRIVATE KEY-----`,
-    }
+	patterns := []string{
+		// assignment patterns with actual values
+		`(?i)(password|passwd|secret|api_key|apikey|access_key)\s*[:=]\s*["']?[a-zA-Z0-9+/]{8,}`,
+		// known API key formats
+		`sk-[a-zA-Z0-9]{20,}`,
+		`gsk_[a-zA-Z0-9]{20,}`,
+		`AIza[a-zA-Z0-9]{20,}`,
+		`sk-ant-[a-zA-Z0-9]{20,}`,
+		// bearer tokens
+		`(?i)Bearer\s+[a-zA-Z0-9\-._~+/]{20,}`,
+		// private keys
+		`-----BEGIN (RSA |EC )?PRIVATE KEY-----`,
+	}
 
-    for _, pattern := range patterns {
-        matched, _ := regexp.MatchString(pattern, addedContent)
-        if matched {
-            return true
-        }
-    }
-    return false
+	for _, pattern := range patterns {
+		matched, _ := regexp.MatchString(pattern, addedContent)
+		if matched {
+			return true
+		}
+	}
+	return false
 }
 
 func init() {

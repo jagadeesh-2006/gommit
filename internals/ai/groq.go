@@ -85,7 +85,7 @@ type groqResponse struct {
 	} `json:"choices"`
 }
 
-func (g *GroqProvider) GenerateCommitMessage(diff string, context string) (string, error) {
+func (g *GroqProvider) GenerateCommitMessage(diff string, context string, previousMessage string) (string, error) {
 	userInstructions := ""
 	if g.CustomPrompt != "" {
 		userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", g.CustomPrompt)
@@ -94,6 +94,11 @@ func (g *GroqProvider) GenerateCommitMessage(diff string, context string) (strin
 	contextInfo := ""
 	if context != "" {
 		contextInfo = fmt.Sprintf("Context about changes: %s\n", context)
+	}
+
+	previousSection := ""
+	if previousMessage != "" {
+		previousSection = fmt.Sprintf("Previous message (do NOT repeat or rephrase this): %s\nTry a completely different angle.\n", previousMessage)
 	}
 
 	styleGuide := commitstyle.GetStyleGuide(g.CommitStyle)
@@ -122,8 +127,9 @@ func (g *GroqProvider) GenerateCommitMessage(diff string, context string) (strin
 	%s
 	%s
 	%s
+	%s
 	Git diff:
-	%s`, g.CommitStyle, styleGuide, styleExamples, userInstructions, contextInfo, diff)
+	%s`, g.CommitStyle, styleGuide, styleExamples, userInstructions, contextInfo, previousSection, diff)
 
 	reqBody := groqRequest{
 		Model: g.Model,
