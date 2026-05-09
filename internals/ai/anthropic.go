@@ -1,13 +1,14 @@
 package ai
 
 import (
-    "encoding/json"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"bytes"
-	"time"
 	"strings"
+	"time"
+
 	"github.com/jagadeesh-2006/gommit/internals/commitstyle"
 )
 
@@ -87,10 +88,15 @@ type anthropicResponse struct {
 	} `json:"content"`
 }
 
-func (a *AnthropicProvider) GenerateCommitMessage(diff string) (string, error) {
+func (a *AnthropicProvider) GenerateCommitMessage(diff string, context string) (string, error) {
 	userInstructions := ""
 	if a.CustomPrompt != "" {
 		userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", a.CustomPrompt)
+	}
+
+	contextInfo := ""
+	if context != "" {
+		contextInfo = fmt.Sprintf("Context about changes: %s\n", context)
 	}
 
 	styleGuide := commitstyle.GetStyleGuide(a.CommitStyle)
@@ -118,8 +124,9 @@ func (a *AnthropicProvider) GenerateCommitMessage(diff string) (string, error) {
     %s
     %s
     %s
+    %s
     Git diff:
-    %s`, a.CommitStyle, styleGuide, styleExamples,userInstructions, diff)
+    %s`, a.CommitStyle, styleGuide, styleExamples, userInstructions, contextInfo, diff)
 
 	reqBody := anthropicRequest{
 		Model:     a.Model,

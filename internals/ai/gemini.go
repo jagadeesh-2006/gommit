@@ -58,13 +58,13 @@ func (g *GeminiProvider) FetchModels() ([]string, error) {
 	}
 
 	allowedModels := map[string]bool{
-		"gemini-2.5-flash": true, 
-		"gemini-2.5-pro":   true, 
-		"gemini-2.5-flash-lite": true, 
-		"gemini-3.1-flash-lite": true, 
-		"gemini-3.1-pro":        true, 
-		"gemini-3-flash":        true, 
-		"gemini-flash-latest":   true, 
+		"gemini-2.5-flash":      true,
+		"gemini-2.5-pro":        true,
+		"gemini-2.5-flash-lite": true,
+		"gemini-3.1-flash-lite": true,
+		"gemini-3.1-pro":        true,
+		"gemini-3-flash":        true,
+		"gemini-flash-latest":   true,
 	}
 
 	models := []string{}
@@ -104,10 +104,15 @@ type geminiResponse struct {
 	} `json:"candidates"`
 }
 
-func (g *GeminiProvider) GenerateCommitMessage(diff string) (string, error) {
+func (g *GeminiProvider) GenerateCommitMessage(diff string, context string) (string, error) {
 	userInstructions := ""
 	if g.CustomPrompt != "" {
 		userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", g.CustomPrompt)
+	}
+
+	contextInfo := ""
+	if context != "" {
+		contextInfo = fmt.Sprintf("Context about changes: %s\n", context)
 	}
 
 	styleGuide := commitstyle.GetStyleGuide(g.CommitStyle)
@@ -135,9 +140,10 @@ func (g *GeminiProvider) GenerateCommitMessage(diff string) (string, error) {
 	%s
 	%s
 	%s
+	%s
 	Git diff:
 	%s
-	`, g.CommitStyle, styleGuide, styleExamples,userInstructions, diff)
+	`, g.CommitStyle, styleGuide, styleExamples, userInstructions, contextInfo, diff)
 
 	reqBody := geminiRequest{
 		Contents: []geminiContent{

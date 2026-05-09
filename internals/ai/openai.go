@@ -84,10 +84,15 @@ type openAIResponse struct {
 	} `json:"choices"`
 }
 
-func (g *OpenAIProvider) GenerateCommitMessage(diff string) (string, error) {
+func (g *OpenAIProvider) GenerateCommitMessage(diff string, context string) (string, error) {
 	userInstructions := ""
 	if g.CustomPrompt != "" {
 		userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", g.CustomPrompt)
+	}
+
+	contextInfo := ""
+	if context != "" {
+		contextInfo = fmt.Sprintf("Context about changes: %s\n", context)
 	}
 
 	styleGuide := commitstyle.GetStyleGuide(g.CommitStyle)
@@ -115,8 +120,9 @@ func (g *OpenAIProvider) GenerateCommitMessage(diff string) (string, error) {
 	%s
 	%s
 	%s
+	%s
 	Git diff:
-	%s`, g.CommitStyle, styleGuide, styleExamples,userInstructions, diff)
+	%s`, g.CommitStyle, styleGuide, styleExamples, userInstructions, contextInfo, diff)
 
 	reqBody := openAIRequest{
 		Model: g.Model,

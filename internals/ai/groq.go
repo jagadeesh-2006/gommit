@@ -85,10 +85,15 @@ type groqResponse struct {
 	} `json:"choices"`
 }
 
-func (g *GroqProvider) GenerateCommitMessage(diff string) (string, error) {
+func (g *GroqProvider) GenerateCommitMessage(diff string, context string) (string, error) {
 	userInstructions := ""
 	if g.CustomPrompt != "" {
 		userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", g.CustomPrompt)
+	}
+
+	contextInfo := ""
+	if context != "" {
+		contextInfo = fmt.Sprintf("Context about changes: %s\n", context)
 	}
 
 	styleGuide := commitstyle.GetStyleGuide(g.CommitStyle)
@@ -116,8 +121,9 @@ func (g *GroqProvider) GenerateCommitMessage(diff string) (string, error) {
 	%s
 	%s
 	%s
+	%s
 	Git diff:
-	%s`, g.CommitStyle, styleGuide, styleExamples,userInstructions, diff)
+	%s`, g.CommitStyle, styleGuide, styleExamples, userInstructions, contextInfo, diff)
 
 	reqBody := groqRequest{
 		Model: g.Model,
@@ -149,12 +155,12 @@ func (g *GroqProvider) GenerateCommitMessage(diff string) (string, error) {
 	defer resp.Body.Close()
 	// response status for failing request
 	switch resp.StatusCode {
-		case 429:
-			return "", fmt.Errorf("rate limit exceeded: %s", resp.Status)
-		case 401:
-			return "", fmt.Errorf("invalid API key - run `gommit update` to set valid key")
-		case 500, 502, 503:
-			return "", fmt.Errorf("provider is down try again later")
+	case 429:
+		return "", fmt.Errorf("rate limit exceeded: %s", resp.Status)
+	case 401:
+		return "", fmt.Errorf("invalid API key - run `gommit update` to set valid key")
+	case 500, 502, 503:
+		return "", fmt.Errorf("provider is down try again later")
 	}
 
 	respBody, err := io.ReadAll(resp.Body)

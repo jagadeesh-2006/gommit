@@ -79,10 +79,15 @@ type ollamaResponse struct {
 	} `json:"message"`
 }
 
-func (o *OllamaProvider) GenerateCommitMessage(diff string) (string, error) {
+func (o *OllamaProvider) GenerateCommitMessage(diff string, context string) (string, error) {
 	userInstructions := ""
 	if o.CustomPrompt != "" {
 		userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", o.CustomPrompt)
+	}
+
+	contextInfo := ""
+	if context != "" {
+		contextInfo = fmt.Sprintf("Context about changes: %s\n", context)
 	}
 
 	styleGuide := commitstyle.GetStyleGuide(o.CommitStyle)
@@ -110,9 +115,10 @@ func (o *OllamaProvider) GenerateCommitMessage(diff string) (string, error) {
 	%s
 	%s
 	%s
+	%s
 	Git diff:
 	%s
-	`, o.CommitStyle, styleGuide, styleExamples,userInstructions, diff)
+	`, o.CommitStyle, styleGuide, styleExamples, userInstructions, contextInfo, diff)
 
 	reqBody := ollamaRequest{
 		Model: o.Model,

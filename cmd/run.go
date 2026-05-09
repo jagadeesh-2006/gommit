@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
 	"regexp"
+	"strings"
+
 	"github.com/fatih/color"
 	"github.com/jagadeesh-2006/gommit/internals/ai"
 	"github.com/jagadeesh-2006/gommit/internals/config"
@@ -19,20 +20,19 @@ var runCmd = &cobra.Command{
 	Short:   "Generate and commit messages",
 	Run: func(cmd *cobra.Command, args []string) {
 		// fmt.Println("Running gommit...")
-		// step 1 - load config
+		// load config
 		if !config.Exists() {
 			color.Red(" Config not found — run `gommit init` first")
 			return
 		}
 
-		// fmt.Println("Config exists ✓")
 		cfg, err := config.Load()
 		if err != nil {
 			color.Red("Error loading config: %s", err)
 			return
 		}
 
-		// step 2 - get diff
+		//  get diff
 		diff, err := git.Diff()
 		if err != nil {
 			color.Red("Error getting diff: %s", err)
@@ -51,15 +51,23 @@ var runCmd = &cobra.Command{
 			}
 		}
 		// fmt.Println("Got diff ")
-		// step 3 - get provider
+		// step 3 - get context
+		contextInput, _ := cmd.Flags().GetString("context")
+		if contextInput == "" {
+			reader := bufio.NewReader(os.Stdin)
+			color.White("Why did you make this change? (optional, press Enter to skip): ")
+			contextInput, _ = reader.ReadString('\n')
+			contextInput = strings.TrimSpace(contextInput)
+		}
+		
+		// get provider
 		provider := ai.GetProvider(cfg.Provider, cfg.APIKey, cfg.Model, cfg.CommitStyle, cfg.CustomPrompt)
 		if provider == nil {
 			color.Red("Error getting AI provider:")
 			return
 		}
-		// fmt.Println("Got AI provider ")
-		// step 4 - generate commit message
-		message, err := provider.GenerateCommitMessage(diff)
+		// generate commit message
+		message, err := provider.GenerateCommitMessage(diff, contextInput)
 		if err != nil {
 			color.Red("Error generating commit message: %s", err)
 			return
@@ -101,7 +109,7 @@ var runCmd = &cobra.Command{
 			prompt := fmt.Sprintf("%s\n\nThe previous commit message was:\n%s\n\n generate a new commit message that is better from the previous one but more specific.", diff, oldmsg)
 			
 			color.Cyan("Regenerating commit message...")
-			newMessage, err := provider.GenerateCommitMessage(prompt)
+			newMessage, err := provider.GenerateCommitMessage(prompt, contextInput)
 			if err != nil {
 				color.Red("Error generating commit message: %s", err)
 				return
@@ -159,4 +167,8 @@ func containsSensitiveData(diff string) bool {
         }
     }
     return false
+}
+
+func init() {
+	runCmd.Flags().StringP("context", "c", "", "Context for why changes were made")
 }
