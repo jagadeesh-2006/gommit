@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
+	"github.com/chzyer/readline"
 	"github.com/fatih/color"
 	"github.com/jagadeesh-2006/gommit/internals/ai"
 	"github.com/jagadeesh-2006/gommit/internals/config"
@@ -159,33 +159,39 @@ var runCmd = &cobra.Command{
 			}
 
 		case "e":
-			color.White("Which message to edit? (1/2/3): ")
-			var editChoice string
-			fmt.Scanln(&editChoice)
-			idx, _ := strconv.Atoi(editChoice)
-			if idx < 1 || idx > 3 {
-				color.Red("Invalid choice.")
-				return
-			}
-			selected := messages[idx-1]
+    color.White("Which message to edit? (1/2/3): ")
+    var editChoice string
+    fmt.Scanln(&editChoice)
+    idx, _ := strconv.Atoi(editChoice)
+    if idx < 1 || idx > len(messages) {
+        color.Red("❌ Invalid choice.")
+        return
+    }
+    selected := messages[idx-1]
 
-			reader := bufio.NewReader(os.Stdin)
-			color.White("Edit message: ")
-			fmt.Print(selected)
-			edited, _ := reader.ReadString('\n')
-			edited = strings.TrimSpace(edited)
+    rl, err := readline.New("> ")
+    if err != nil {
+        color.Red("Error: %s", err)
+        return
+    }
+    defer rl.Close()
 
-			if edited != "" {
-				err := git.Commit(edited)
-				if err != nil {
-					color.Red("Error committing changes: %s", err)
-					return
-				}
-				color.Green("✅ Committed: %s", edited)
-			} else {
-				color.Yellow("Commit aborted.")
-			}
+    // prefill with selected message
+    rl.WriteStdin([]byte(selected))
+    color.White("Edit message:")
+    edited, _ := rl.Readline()
+    edited = strings.TrimSpace(edited)
 
+    if edited == "" {
+        edited = selected
+    }
+
+    err = git.Commit(edited)
+    if err != nil {
+        color.Red("Error committing: %s", err)
+        return
+    }
+    color.Green("✅ Committed: %s", edited)
 		case "n":
 			color.Yellow("Commit cancelled.")
 		default:
