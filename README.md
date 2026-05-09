@@ -130,16 +130,37 @@ git add .
 gommit run
 ```
 
+First, provide optional context about your changes:
 ```
-Suggested commit: feat(auth): add JWT token refresh logic
-
-[y] commit  [e] edit  [r] regenerate  [n] cancel
+Why did you make this change? (optional, press Enter to skip): Added JWT refresh token for better session management
 ```
 
-- `y` — accept and commit
-- `e` — edit the message then commit with your version
-- `r` — regenerate a new suggestion
-- `n` — cancel without committing
+Then choose from 3 AI-generated suggestions:
+```
+  1. feat(auth): add JWT token refresh for session management
+  2. feat: implement automatic token refresh mechanism
+  3. refactor(auth): improve token lifecycle handling
+
+Select (1/2/3), [r] regenerate, [e] edit, [n] cancel: 
+```
+
+**Options:**
+- `1/2/3` — select and commit that message
+- `[e]` — edit a message with interactive text editing
+  - Select which message to edit (1/2/3)
+  - Opens interactive line editor with the message content
+  - Use arrow keys to move cursor, backspace to delete, type to add/modify text
+  - Press Enter when done
+- `[r]` — regenerate 3 new suggestions
+- `[n]` — cancel without committing
+
+**Example edit:**
+```
+Original: feat(auth): add JWT token refresh
+Edit: > feat(auth): add JWT token refresh for better session handling
+↑ Added "for better session handling" and committed
+✅ Committed: feat(auth): add JWT token refresh for better session handling
+```
 
 ---
 
@@ -375,17 +396,20 @@ rm /usr/local/bin/gommit
 
 ## What's Next
 
-This is `v0.1.0` — the core is working and stable.
+## What's in v0.2.0
+- 3 commit message suggestions at once
+- Smart regeneration — avoids repeating previous messages
+- Context input — tell gommit why you made the change
+- Commit style package with proper type definitions
 
 **Coming soon:**
 - Per-repo config — different provider/style per project via `.gommit.json` in repo root
-- Context input — tell gommit why you made the change for more accurate messages
 - PR description generator — `gommit pr` generates full pull request descriptions
 - Commit feedback — when you cancel with `n`, gommit learns what you didn't like and improves the next suggestion
 - Homebrew support — `brew install gommit`
 - Team config sharing — commit `.gommit.json` to share style across your team
 - Git hooks integration — runs automatically on every `git commit`, no manual `gommit run` needed
-- Smart regeneration — avoids repeating the same message when you press `r`
+
 
 
 **Have an idea or found a bug?**

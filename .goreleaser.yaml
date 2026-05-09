@@ -1,4 +1,4 @@
-version: 1  
+version: 2
 
 before:
   hooks:
@@ -33,6 +33,9 @@ changelog:
       - "^docs:"
       - "^test:"
       - "^ci:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
 
 release:
   github:
