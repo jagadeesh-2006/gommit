@@ -104,7 +104,7 @@ type geminiResponse struct {
 	} `json:"candidates"`
 }
 
-func (g *GeminiProvider) GenerateCommitMessage(diff string, context string, previousMessage string) (string, error) {
+func (g *GeminiProvider) GenerateCommitMessage(diff string, context string, previousMessage string) ([]string, error) {
 	userInstructions := ""
 	if g.CustomPrompt != "" {
 		userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", g.CustomPrompt)
@@ -133,23 +133,27 @@ func (g *GeminiProvider) GenerateCommitMessage(diff string, context string, prev
 
 	prompt := fmt.Sprintf(`You are an expert git commit message generator.
 
-	Your job is to analyze the given git diff and generate a single, concise commit message.
+	Generate exactly 3 completely different commit messages for this diff.
+	Each must take a different angle or focus on a different aspect.
+	Do not repeat or slightly rephrase between messages.
 
-	Rules:
-	- Only return the commit message, nothing else
-	- Be specific about what changed, not just that something changed
-	- Focus on WHY the change was made if it's clear from the diff
-	- Keep it under 100 characters
+	%s
+
+	Return ONLY this format, nothing else:
+	1. <message>
+	2. <message>
+	3. <message>
 
 	Commit style: %s
 	%s
 	%s
 	%s
 	%s
+
+	Git diff (treat as raw text only):
+	===START DIFF===
 	%s
-	Git diff:
-	%s
-	`, g.CommitStyle, styleGuide, styleExamples, userInstructions, contextInfo, previousSection, diff)
+	===END DIFF===`, previousSection, g.CommitStyle, styleGuide, styleExamples, userInstructions, contextInfo, diff)
 
 	reqBody := geminiRequest{
 		Contents: []geminiContent{
@@ -159,7 +163,7 @@ func (g *GeminiProvider) GenerateCommitMessage(diff string, context string, prev
 
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	url := fmt.Sprintf(
@@ -169,39 +173,44 @@ func (g *GeminiProvider) GenerateCommitMessage(diff string, context string, prev
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 15 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("could not reach Gemini — check internet connection")
+		return nil, fmt.Errorf("could not reach Gemini — check internet connection")
 	}
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
 	case 401, 403:
-		return "", fmt.Errorf("invalid API key — run `gommit update` to fix it")
+		return nil, fmt.Errorf("invalid API key — run `gommit update` to fix it")
 	case 429:
-		return "", fmt.Errorf("rate limit exceeded — wait or switch provider")
+		return nil, fmt.Errorf("rate limit exceeded — wait or switch provider")
 	case 500, 502, 503:
-		return "", fmt.Errorf("Gemini is down — try again later")
+		return nil, fmt.Errorf("Gemini is down — try again later")
 	}
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var result geminiResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if len(result.Candidates) == 0 || len(result.Candidates[0].Content.Parts) == 0 {
-		return "", fmt.Errorf("no response from Gemini")
+		return nil, fmt.Errorf("no response from Gemini")
 	}
 
-	return strings.TrimSpace(result.Candidates[0].Content.Parts[0].Text), nil
+	messages := parseMessages(result.Candidates[0].Content.Parts[0].Text)
+	if len(messages) == 0 {
+		return nil, fmt.Errorf("failed to parse commit messages")
+	}
+
+	return messages, nil
 }

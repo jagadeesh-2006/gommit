@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
@@ -66,67 +67,127 @@ var runCmd = &cobra.Command{
 			color.Red("Error getting AI provider:")
 			return
 		}
-		// generate commit message
-		message, err := provider.GenerateCommitMessage(diff, contextInput, "")
+		// generate commit messages
+		messages, err := provider.GenerateCommitMessage(diff, contextInput, "")
 		if err != nil {
-			color.Red("Error generating commit message: %s", err)
+			color.Red("Error generating commit messages: %s", err)
 			return
 		}
-		color.Cyan("Suggested commit message: %s", message)
+
+		// show 3 messages
+		fmt.Println()
+		for i, msg := range messages {
+			color.Cyan("  %d. %s", i+1, msg)
+		}
+		fmt.Println()
+
+		color.White("Select (1/2/3), [r] regenerate, [e] edit, [n] cancel: ")
 		var choice string
-		color.White("Do you want to use this commit message? (y/e/r/n): ")
 		fmt.Scanln(&choice)
 
 		switch choice {
-		case "y":
-			err := git.Commit(message)
+		case "1", "2", "3":
+			idx, _ := strconv.Atoi(choice)
+			selected := messages[idx-1]
+			err := git.Commit(selected)
 			if err != nil {
 				color.Red("Error committing changes: %s", err)
 				return
 			}
-			color.Green("Changes committed with message: %s", message)
-		case "e":
-			reader := bufio.NewReader(os.Stdin)
-			color.White("Enter your commit message: ")
-			customMessage, _ := reader.ReadString('\n')
-			customMessage = strings.TrimSpace(customMessage)
-			color.White("Do you want to use this custom commit message? (y/n): ")
+			color.Green("✅ Committed: %s", selected)
+
+		case "r":
+			color.Cyan("Regenerating commit messages...")
+			newMessages, err := provider.GenerateCommitMessage(diff, contextInput, messages[0])
+			if err != nil {
+				color.Red("Error generating commit messages: %s", err)
+				return
+			}
+
+			// show 3 new messages
+			fmt.Println()
+			for i, msg := range newMessages {
+				color.Cyan("  %d. %s", i+1, msg)
+			}
+			fmt.Println()
+
+			color.White("Select (1/2/3), [e] edit, [n] cancel: ")
 			var newChoice string
 			fmt.Scanln(&newChoice)
-			if newChoice == "y" {
-				err := git.Commit(customMessage)
+
+			switch newChoice {
+			case "1", "2", "3":
+				idx, _ := strconv.Atoi(newChoice)
+				selected := newMessages[idx-1]
+				err := git.Commit(selected)
 				if err != nil {
 					color.Red("Error committing changes: %s", err)
 					return
 				}
-				color.Green("Changes committed with message: %s", customMessage)
+				color.Green("✅ Committed: %s", selected)
+			case "e":
+				color.White("Which message to edit? (1/2/3): ")
+				var editChoice string
+				fmt.Scanln(&editChoice)
+				idx, _ := strconv.Atoi(editChoice)
+				if idx < 1 || idx > 3 {
+					color.Red("Invalid choice.")
+					return
+				}
+				selected := newMessages[idx-1]
+
+				reader := bufio.NewReader(os.Stdin)
+				color.White("Edit message: ")
+				fmt.Print(selected)
+				edited, _ := reader.ReadString('\n')
+				edited = strings.TrimSpace(edited)
+
+				if edited != "" {
+					err := git.Commit(edited)
+					if err != nil {
+						color.Red("Error committing changes: %s", err)
+						return
+					}
+					color.Green("✅ Committed: %s", edited)
+				} else {
+					color.Yellow("Commit aborted.")
+				}
+			case "n":
+				color.Yellow("Commit cancelled.")
+			default:
+				color.Red("Invalid choice. Commit aborted.")
+			}
+
+		case "e":
+			color.White("Which message to edit? (1/2/3): ")
+			var editChoice string
+			fmt.Scanln(&editChoice)
+			idx, _ := strconv.Atoi(editChoice)
+			if idx < 1 || idx > 3 {
+				color.Red("Invalid choice.")
+				return
+			}
+			selected := messages[idx-1]
+
+			reader := bufio.NewReader(os.Stdin)
+			color.White("Edit message: ")
+			fmt.Print(selected)
+			edited, _ := reader.ReadString('\n')
+			edited = strings.TrimSpace(edited)
+
+			if edited != "" {
+				err := git.Commit(edited)
+				if err != nil {
+					color.Red("Error committing changes: %s", err)
+					return
+				}
+				color.Green("✅ Committed: %s", edited)
 			} else {
 				color.Yellow("Commit aborted.")
 			}
 
-		case "r":
-			color.Cyan("Regenerating commit message...")
-			newMessage, err := provider.GenerateCommitMessage(diff, contextInput, message)
-			if err != nil {
-				color.Red("Error generating commit message: %s", err)
-				return
-			}
-			color.Cyan("Regenerated commit message: %s", newMessage)
-			color.White("Do you want to use this commit message? (y/n): ")
-			var newChoice string
-			fmt.Scanln(&newChoice)
-			if newChoice == "y" {
-				err := git.Commit(newMessage)
-				if err != nil {
-					color.Red("Error committing changes: %s", err)
-					return
-				}
-				color.Green("Changes committed with message: %s", newMessage)
-			} else {
-				color.Yellow("Commit aborted.")
-			}
 		case "n":
-			color.Yellow("Commit aborted.")
+			color.Yellow("Commit cancelled.")
 		default:
 			color.Red("Invalid choice. Commit aborted.")
 		}
