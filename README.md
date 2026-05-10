@@ -401,11 +401,19 @@ rm /usr/local/bin/gommit
 - Smart regeneration — avoids repeating previous messages
 - Context input — tell gommit why you made the change
 - Commit style package with proper type definitions
+- Interactive edit mode — modify messages character-by-character with readline
 
-**Coming soon:**
+**Performance & Scalability (v0.3.0):**
+- Large diff handling — automatic truncation and compression for diffs over 8000 characters
+- Token budget optimization — smart allocation across diff, context, and prompt
+- Non-blocking commits — goroutines for parallel operations, user doesn't wait during git commit
+- Parallel config loading — load global + per-repo config in parallel
+- AI request with timeout — cancel long-running requests with Ctrl+C
+
+**Features (v0.4.0+):**
 - Per-repo config — different provider/style per project via `.gommit.json` in repo root
 - PR description generator — `gommit pr` generates full pull request descriptions
-- Commit feedback — when you cancel with `n`, gommit learns what you didn't like and improves the next suggestion
+- Commit feedback learning — when you cancel with `n`, gommit learns what you didn't like
 - Homebrew support — `brew install gommit`
 - Team config sharing — commit `.gommit.json` to share style across your team
 - Git hooks integration — runs automatically on every `git commit`, no manual `gommit run` needed
@@ -433,6 +441,13 @@ gommit run
 # 4. push and open a PR
 git push origin feature/your-feature
 ```
+
+### Developer Documentation
+
+Internal design docs (not committed):
+- **QNA.md** — Architecture decisions, "why did we choose this?" Q&A
+- **PERFORMANCE.md** — Goroutine usage, large diff handling, token optimization strategies
+- **DECISIONS.md** — Technical decision log for future reference
 
 ---
 
