@@ -29,3 +29,7 @@ dist/
 # os
 .DS_Store
 Thumbs.db
+
+#all markdown files except README.md
+*.md
+!README.mdr
