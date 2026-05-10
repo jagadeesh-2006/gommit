@@ -12,6 +12,7 @@ import (
 	"github.com/jagadeesh-2006/gommit/internals/ai"
 	"github.com/jagadeesh-2006/gommit/internals/config"
 	"github.com/jagadeesh-2006/gommit/internals/git"
+	"github.com/jagadeesh-2006/gommit/internals/grouping"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +34,34 @@ var runCmd = &cobra.Command{
 			return
 		}
 
-		//  get diff
+		// Get provider early (needed for both modes)
+		provider := ai.GetProvider(cfg.Provider, cfg.APIKey, cfg.Model, cfg.CommitStyle, cfg.CustomPrompt)
+		if provider == nil {
+			color.Red("Error getting AI provider")
+			return
+		}
+
+		// Check for explicit smart flag
+		smart, _ := cmd.Flags().GetBool("smart")
+		noSmart, _ := cmd.Flags().GetBool("no-smart")
+
+		// If not explicitly disabled, check for auto-activation on large diffs
+		if !noSmart && !smart {
+			files, _ := grouping.GetStagedFiles()
+			if shouldActivateSmart(files) {
+				color.Yellow("ℹ️  Large diff detected (%d files). Activating smart grouping...\n", len(files))
+				smart = true
+			}
+		}
+
+		if smart {
+			if err := RunSmart(provider); err != nil {
+				color.Red("Error: %v", err)
+			}
+			return
+		}
+
+		//  get diff (regular mode)
 		diff, err := git.Diff()
 		if err != nil {
 			color.Red("Error getting diff: %s", err)
@@ -51,7 +79,7 @@ var runCmd = &cobra.Command{
 				return
 			}
 		}
-		// fmt.Println("Got diff ")
+
 		// step 3 - get context
 		contextInput, _ := cmd.Flags().GetString("context")
 		if contextInput == "" {
@@ -59,13 +87,6 @@ var runCmd = &cobra.Command{
 			color.White("Why did you make this change? (optional, press Enter to skip): ")
 			contextInput, _ = reader.ReadString('\n')
 			contextInput = strings.TrimSpace(contextInput)
-		}
-
-		// get provider
-		provider := ai.GetProvider(cfg.Provider, cfg.APIKey, cfg.Model, cfg.CommitStyle, cfg.CustomPrompt)
-		if provider == nil {
-			color.Red("Error getting AI provider:")
-			return
 		}
 		// generate commit messages
 		messages, err := provider.GenerateCommitMessage(diff, contextInput, "")
@@ -159,39 +180,39 @@ var runCmd = &cobra.Command{
 			}
 
 		case "e":
-    color.White("Which message to edit? (1/2/3): ")
-    var editChoice string
-    fmt.Scanln(&editChoice)
-    idx, _ := strconv.Atoi(editChoice)
-    if idx < 1 || idx > len(messages) {
-        color.Red("❌ Invalid choice.")
-        return
-    }
-    selected := messages[idx-1]
+			color.White("Which message to edit? (1/2/3): ")
+			var editChoice string
+			fmt.Scanln(&editChoice)
+			idx, _ := strconv.Atoi(editChoice)
+			if idx < 1 || idx > len(messages) {
+				color.Red("❌ Invalid choice.")
+				return
+			}
+			selected := messages[idx-1]
 
-    rl, err := readline.New("> ")
-    if err != nil {
-        color.Red("Error: %s", err)
-        return
-    }
-    defer rl.Close()
+			rl, err := readline.New("> ")
+			if err != nil {
+				color.Red("Error: %s", err)
+				return
+			}
+			defer rl.Close()
 
-    // prefill with selected message
-    rl.WriteStdin([]byte(selected))
-    color.White("Edit message:")
-    edited, _ := rl.Readline()
-    edited = strings.TrimSpace(edited)
+			// prefill with selected message
+			rl.WriteStdin([]byte(selected))
+			color.White("Edit message:")
+			edited, _ := rl.Readline()
+			edited = strings.TrimSpace(edited)
 
-    if edited == "" {
-        edited = selected
-    }
+			if edited == "" {
+				edited = selected
+			}
 
-    err = git.Commit(edited)
-    if err != nil {
-        color.Red("Error committing: %s", err)
-        return
-    }
-    color.Green("✅ Committed: %s", edited)
+			err = git.Commit(edited)
+			if err != nil {
+				color.Red("Error committing: %s", err)
+				return
+			}
+			color.Green("✅ Committed: %s", edited)
 		case "n":
 			color.Yellow("Commit cancelled.")
 		default:
@@ -233,6 +254,28 @@ func containsSensitiveData(diff string) bool {
 	return false
 }
 
+// shouldActivateSmart checks if diff is large enough to warrant smart grouping
+func shouldActivateSmart(files []*grouping.FileInfo) bool {
+	// Thresholds for auto-activation
+	const (
+		minFilesForSmart = 5    // 5+ files
+		minLinesForSmart = 1500 // 1500+ total lines changed
+	)
+
+	if len(files) >= minFilesForSmart {
+		return true
+	}
+
+	totalLines := 0
+	for _, f := range files {
+		totalLines += f.Lines
+	}
+
+	return totalLines >= minLinesForSmart
+}
+
 func init() {
 	runCmd.Flags().StringP("context", "c", "", "Context for why changes were made")
+	runCmd.Flags().BoolP("smart", "s", false, "Force smart grouping mode (auto-group files by type)")
+	runCmd.Flags().Bool("no-smart", false, "Disable smart mode even if diff is large")
 }
