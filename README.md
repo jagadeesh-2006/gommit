@@ -7,6 +7,7 @@
 > AI-powered git commit message generator — single binary, no Node required
 
 </div>
+
 ---
 
 ## The Problem
@@ -130,37 +131,111 @@ git add .
 gommit run
 ```
 
-First, provide optional context about your changes:
+Optionally tell gommit why you made the change:
 ```
-Why did you make this change? (optional, press Enter to skip): Added JWT refresh token for better session management
-```
-
-Then choose from 3 AI-generated suggestions:
-```
-  1. feat(auth): add JWT token refresh for session management
-  2. feat: implement automatic token refresh mechanism
-  3. refactor(auth): improve token lifecycle handling
-
-Select (1/2/3), [r] regenerate, [e] edit, [n] cancel: 
+Why did you make this change? (optional, Enter to skip): fixing null pointer when user has no avatar
 ```
 
-**Options:**
-- `1/2/3` — select and commit that message
-- `[e]` — edit a message with interactive text editing
-  - Select which message to edit (1/2/3)
-  - Opens interactive line editor with the message content
-  - Use arrow keys to move cursor, backspace to delete, type to add/modify text
-  - Press Enter when done
-- `[r]` — regenerate 3 new suggestions
-- `[n]` — cancel without committing
+Choose from 3 AI-generated suggestions:
+```
+  1. fix(profile): handle null avatar URL to prevent crash
+  2. fix: prevent NPE when user profile image is missing
+  3. fix(user): add null check for optional avatar field
 
-**Example edit:**
+Select (1/2/3), [r] regenerate, [e] edit, [n] cancel:
 ```
-Original: feat(auth): add JWT token refresh
-Edit: > feat(auth): add JWT token refresh for better session handling
-↑ Added "for better session handling" and committed
-✅ Committed: feat(auth): add JWT token refresh for better session handling
+
+- `1/2/3` — select and commit
+- `e` — edit a message inline then commit
+- `r` — regenerate 3 new suggestions
+- `n` — cancel
+
+---
+
+## Smart Mode — Auto-grouped Commits
+
+When you have many staged files, gommit automatically activates **smart mode** — it groups your files by type and generates a separate, accurate commit message for each group.
+
+```bash
+git add .
+gommit run
+# auto-activates when 5+ files or 1500+ lines staged
 ```
+
+Or force it manually:
+```bash
+gommit run --smart
+gommit run -s
+```
+
+Disable it:
+```bash
+gommit run --no-smart
+```
+
+### How it works
+
+```
+Auto-grouped staged files:
+
+  📦 Code    3 file(s), 156 line(s) changed
+  ⚙️  Config  1 file(s), 3 line(s) changed
+  📄 Docs    2 file(s), 45 line(s) changed
+  🚫 Skip    2 file(s) — lock files ignored
+
+─── 📦 Code / src/auth ───
+   src/auth/session.go (24 lines)
+   src/auth/middleware.go (12 lines)
+
+  1. fix(auth): enforce secure flag when SameSite is none
+  2. feat(auth): add session expiry validation
+  3. refactor(auth): consolidate cookie security checks
+
+Select (1/2/3), [e]dit, [s]kip, [r]egenerate:
+> 1
+✅ fix(auth): enforce secure flag when SameSite is none
+
+─── ⚙️  Config ───
+   config/app.yaml (3 lines)
+
+  1. chore(config): increase request timeout to 60s
+  2. chore: update connection pool settings
+  3. build(config): adjust timeout for slow network environments
+
+Select (1/2/3), [e]dit, [s]kip, [r]egenerate:
+> 1
+✅ chore(config): increase request timeout to 60s
+
+─── 📄 Docs ───
+   README.md (45 lines)
+
+  1. docs: update installation and usage instructions
+  2. docs(readme): add smart mode documentation
+  3. docs: improve quick start guide
+
+Select (1/2/3), [e]dit, [s]kip, [r]egenerate:
+> 2
+✅ docs(readme): add smart mode documentation
+
+🚫 Skipped 2 lock file(s) — no value in commits
+
+✅ Done. 3 commits created.
+```
+
+### File grouping
+
+| Group | Files included |
+|---|---|
+| 📦 Code | All source files (.go, .ts, .py, .js, etc.) |
+| ⚙️ Config | .yaml, .yml, .toml, .json, .env, Dockerfile, Makefile |
+| 📄 Docs | .md, .txt, .rst, README, CHANGELOG, LICENSE |
+| 🧪 Test | *_test.go, *.test.ts, *.spec.js, /tests/ |
+| 🔧 CI | .github/, .gitlab-ci, Jenkinsfile, .circleci |
+| 🚫 Skip | package-lock.json, go.sum, yarn.lock, *.min.js |
+
+Code files are further split by directory — files in `src/auth/` and `src/api/` get separate commits automatically.
+
+> **Note:** Smart mode is still being improved. Complex diffs across many files may occasionally produce less accurate messages. Use `[r]egenerate` or `[e]dit` when needed.
 
 ---
 
@@ -170,6 +245,7 @@ Edit: > feat(auth): add JWT token refresh for better session handling
 |---|---|---|
 | `gommit init` | `i` | First time setup wizard |
 | `gommit run` | `r` | Generate AI commit message and commit |
+| `gommit run --smart` | `r -s` | Force smart grouping mode |
 | `gommit config` | `cfg` | View current configuration |
 | `gommit update` | `u` | Update any configuration value |
 | `gommit prompt` | `p` | Set custom prompt instructions |
@@ -188,7 +264,7 @@ gommit init
 ---
 
 ### `gommit run`
-Reads your staged diff, sends to AI, suggests a commit message, and commits on your approval.
+Reads your staged diff, sends to AI, suggests 3 commit messages, and commits on your approval. Auto-activates smart mode for large diffs.
 
 ```bash
 git add .
@@ -284,6 +360,7 @@ Note: Binary is still installed. To fully remove:
 | Anthropic | ❌ Paid | Required | Yes | [console.anthropic.com](https://console.anthropic.com) |
 | OpenAI | ❌ Paid | Required | Yes | [platform.openai.com](https://platform.openai.com/api-keys) |
 
+> **New to this?** Start with Groq — completely free, no credit card required.
 
 > **Privacy focused?** Use Ollama — runs fully offline on your machine, nothing leaves your computer.
 
@@ -292,17 +369,13 @@ Note: Binary is still installed. To fully remove:
 ### Setting up Ollama
 
 ```bash
-# 1. install ollama
-# download from https://ollama.com
+# 1. install ollama from https://ollama.com
 
 # 2. pull a model
 ollama pull llama3
 
 # 3. run gommit init and pick ollama
 gommit init
-# → provider: ollama
-# → no API key needed
-# → picks from your locally installed models
 ```
 
 ---
@@ -394,23 +467,31 @@ rm /usr/local/bin/gommit
 
 ---
 
+## What's in each version
+
+**v0.2.0**
+- 3 commit message suggestions per run
+- Smart regeneration — avoids repeating previous messages
+- Context input — tell gommit why you made the change 
+- Commit style package — proper conventional/simple/emoji support
+- Gemini and Ollama provider support
+
+**v0.3.0 (next) — work in progress**
+- Smart grouping mode — auto-groups staged files by type
+- Separate accurate commit per group (code, config, docs, tests, CI)
+- Structured diff extraction — signal filtering, function context, importance scoring
+- Still being improved — complex diffs may need manual edit
+
+---
+
 ## What's Next
 
-## What's in v0.2.0
-- 3 commit message suggestions at once
-- Smart regeneration — avoids repeating previous messages
-- Context input — tell gommit why you made the change
-- Commit style package with proper type definitions
-
 **Coming soon:**
-- Per-repo config — different provider/style per project via `.gommit.json` in repo root
+- Per-repo config — different provider/style per project via `.gommit.json`
 - PR description generator — `gommit pr` generates full pull request descriptions
-- Commit feedback — when you cancel with `n`, gommit learns what you didn't like and improves the next suggestion
+- Git hooks integration — runs automatically on every `git commit`
 - Homebrew support — `brew install gommit`
-- Team config sharing — commit `.gommit.json` to share style across your team
-- Git hooks integration — runs automatically on every `git commit`, no manual `gommit run` needed
-
-
+- Smart mode accuracy improvements — better handling of large mixed diffs
 
 **Have an idea or found a bug?**
 → [Open an issue](https://github.com/jagadeesh-2006/gommit/issues) — all suggestions welcome
@@ -423,13 +504,10 @@ PRs are welcome. Please open an issue first for major changes.
 
 ```bash
 # 1. fork the repo
-
 # 2. create a feature branch
 git checkout -b feature/your-feature
-
-# 3. make your changes and commit
+# 3. commit your changes
 gommit run
-
 # 4. push and open a PR
 git push origin feature/your-feature
 ```

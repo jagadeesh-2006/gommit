@@ -31,7 +31,7 @@ type FileSummary struct {
 	IsDeleted  bool
 	Stats      LineStats
 	Signatures []string      // changed fn/class/type declarations, deduped across chunks
-	chunks      []chunkSummary // per-chunk extracted content, capped at maxchunksPerFile
+	Chunks      []chunkSummary // per-chunk extracted content, capped at maxchunksPerFile
 }
 
 const (
@@ -161,7 +161,7 @@ func ExtractFileSummary(filename, rawDiff string, isNew, isDeleted bool, stats L
 		chunk := processchunk(block)
 		// only append chunks that have actual content
 		if len(chunk.Added) > 0 || len(chunk.Removed) > 0 || chunk.FunctionContext != "" {
-			summary.chunks = append(summary.chunks, chunk)
+			summary.Chunks = append(summary.Chunks, chunk)
 		}
 	}
 
@@ -311,7 +311,7 @@ func FormatFileSummary(s FileSummary) string {
 	}
 
 	// per-chunk logic lines, grouped by function context
-	for _, chunk := range s.chunks {
+	for _, chunk := range s.Chunks {
 		if len(chunk.Added) == 0 && len(chunk.Removed) == 0 {
 			continue
 		}
