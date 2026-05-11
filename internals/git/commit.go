@@ -18,17 +18,6 @@ func Commit(message string) error {
 	return cmd.Run()
 }
 
-// CommitGroupFiles commits only the specified files, leaving all other
-// staged files untouched and still staged for subsequent group commits.
-//
-// Strategy (safe, no full reset):
-//  1. Identify all currently staged files
-//  2. Selectively UNSTAGE the files NOT in this group (git restore --staged)
-//  3. Commit the group files (now the only ones staged)
-//  4. Re-stage the temporarily unstaged files so the next group can commit them
-//
-// If the commit fails, the temporarily unstaged files are restored to
-// the index before returning the error.
 func CommitGroupFiles(filePaths []string, message string) error {
 	if len(filePaths) == 0 {
 		return fmt.Errorf("no file paths provided to CommitGroupFiles")

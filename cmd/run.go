@@ -12,7 +12,6 @@ import (
 	"github.com/jagadeesh-2006/gommit/internals/ai"
 	"github.com/jagadeesh-2006/gommit/internals/config"
 	"github.com/jagadeesh-2006/gommit/internals/git"
-	"github.com/jagadeesh-2006/gommit/internals/grouping"
 	"github.com/spf13/cobra"
 )
 
