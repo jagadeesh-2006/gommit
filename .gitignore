@@ -29,3 +29,6 @@ dist/
 # os
 .DS_Store
 Thumbs.db
+
+*.md
+!README.md
