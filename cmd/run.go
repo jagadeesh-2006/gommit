@@ -16,214 +16,238 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	smartMinFiles = 5    // auto-activate if >= this many staged files
+	smartMinLines = 1500 // auto-activate if >= this many total changed lines
+)
+
+// runCmd is the primary command: generate commit messages and commit.
 var runCmd = &cobra.Command{
 	Use:     "run",
 	Aliases: []string{"r"},
 	Short:   "Generate and commit messages",
-	Run: func(cmd *cobra.Command, args []string) {
-		// fmt.Println("Running gommit...")
-		// load config
-		if !config.Exists() {
-			color.Red(" Config not found — run `gommit init` first")
-			return
-		}
-
-		cfg, err := config.Load()
-		if err != nil {
-			color.Red("Error loading config: %s", err)
-			return
-		}
-
-		// Get provider early (needed for both modes)
-		provider := ai.GetProvider(cfg.Provider, cfg.APIKey, cfg.Model, cfg.CommitStyle, cfg.CustomPrompt)
-		if provider == nil {
-			color.Red("Error getting AI provider")
-			return
-		}
-
-		// Check for explicit smart flag
-		smart, _ := cmd.Flags().GetBool("smart")
-		noSmart, _ := cmd.Flags().GetBool("no-smart")
-
-		// If not explicitly disabled, check for auto-activation on large diffs
-		if !noSmart && !smart {
-			files, _ := grouping.GetStagedFiles()
-			if shouldActivateSmart(files) {
-				color.Yellow("ℹ️  Large diff detected (%d files). Activating smart grouping...\n", len(files))
-				smart = true
-			}
-		}
-
-		if smart {
-			if err := RunSmart(provider); err != nil {
-				color.Red("Error: %v", err)
-			}
-			return
-		}
-
-		//  get diff (regular mode)
-		diff, err := git.Diff()
-		if err != nil {
-			color.Red("Error getting diff: %s", err)
-			return
-		}
-		// sensitive data check
-		if containsSensitiveData(diff) {
-			color.Yellow("Sensitive data detected in diff (passwords, keys, tokens)")
-			color.Yellow("  This diff will be sent to: %s", cfg.Provider)
-			fmt.Print("  Continue anyway? (y/n): ")
-			var confirm string
-			fmt.Scanln(&confirm)
-			if confirm != "y" {
-				color.Yellow("Commit cancelled.")
-				return
-			}
-		}
-
-		// step 3 - get context
-		contextInput, _ := cmd.Flags().GetString("context")
-		if contextInput == "" {
-			reader := bufio.NewReader(os.Stdin)
-			color.White("Why did you make this change? (optional, press Enter to skip): ")
-			contextInput, _ = reader.ReadString('\n')
-			contextInput = strings.TrimSpace(contextInput)
-		}
-		// generate commit messages
-		messages, err := provider.GenerateCommitMessage(diff, contextInput, "")
-		if err != nil {
-			color.Red("Error generating commit messages: %s", err)
-			return
-		}
-
-		// show 3 messages
-		fmt.Println()
-		for i, msg := range messages {
-			color.Cyan("  %d. %s", i+1, msg)
-		}
-		fmt.Println()
-
-		color.White("Select (1/2/3), [r] regenerate, [e] edit, [n] cancel: ")
-		var choice string
-		fmt.Scanln(&choice)
-
-		switch choice {
-		case "1", "2", "3":
-			idx, _ := strconv.Atoi(choice)
-			selected := messages[idx-1]
-			err := git.Commit(selected)
-			if err != nil {
-				color.Red("Error committing changes: %s", err)
-				return
-			}
-			color.Green("✅ Committed: %s", selected)
-
-		case "r":
-			color.Cyan("Regenerating commit messages...")
-			newMessages, err := provider.GenerateCommitMessage(diff, contextInput, messages[0])
-			if err != nil {
-				color.Red("Error generating commit messages: %s", err)
-				return
-			}
-
-			// show 3 new messages
-			fmt.Println()
-			for i, msg := range newMessages {
-				color.Cyan("  %d. %s", i+1, msg)
-			}
-			fmt.Println()
-
-			color.White("Select (1/2/3), [e] edit, [n] cancel: ")
-			var newChoice string
-			fmt.Scanln(&newChoice)
-
-			switch newChoice {
-			case "1", "2", "3":
-				idx, _ := strconv.Atoi(newChoice)
-				selected := newMessages[idx-1]
-				err := git.Commit(selected)
-				if err != nil {
-					color.Red("Error committing changes: %s", err)
-					return
-				}
-				color.Green("✅ Committed: %s", selected)
-			case "e":
-				color.White("Which message to edit? (1/2/3): ")
-				var editChoice string
-				fmt.Scanln(&editChoice)
-				idx, _ := strconv.Atoi(editChoice)
-				if idx < 1 || idx > 3 {
-					color.Red("Invalid choice.")
-					return
-				}
-				selected := newMessages[idx-1]
-
-				reader := bufio.NewReader(os.Stdin)
-				color.White("Edit message: ")
-				fmt.Print(selected)
-				edited, _ := reader.ReadString('\n')
-				edited = strings.TrimSpace(edited)
-
-				if edited != "" {
-					err := git.Commit(edited)
-					if err != nil {
-						color.Red("Error committing changes: %s", err)
-						return
-					}
-					color.Green("✅ Committed: %s", edited)
-				} else {
-					color.Yellow("Commit aborted.")
-				}
-			case "n":
-				color.Yellow("Commit cancelled.")
-			default:
-				color.Red("Invalid choice. Commit aborted.")
-			}
-
-		case "e":
-			color.White("Which message to edit? (1/2/3): ")
-			var editChoice string
-			fmt.Scanln(&editChoice)
-			idx, _ := strconv.Atoi(editChoice)
-			if idx < 1 || idx > len(messages) {
-				color.Red("❌ Invalid choice.")
-				return
-			}
-			selected := messages[idx-1]
-
-			rl, err := readline.New("> ")
-			if err != nil {
-				color.Red("Error: %s", err)
-				return
-			}
-			defer rl.Close()
-
-			// prefill with selected message
-			rl.WriteStdin([]byte(selected))
-			color.White("Edit message:")
-			edited, _ := rl.Readline()
-			edited = strings.TrimSpace(edited)
-
-			if edited == "" {
-				edited = selected
-			}
-
-			err = git.Commit(edited)
-			if err != nil {
-				color.Red("Error committing: %s", err)
-				return
-			}
-			color.Green("✅ Committed: %s", edited)
-		case "n":
-			color.Yellow("Commit cancelled.")
-		default:
-			color.Red("Invalid choice. Commit aborted.")
-		}
-	},
+	Run:     runCmdHandler,
 }
 
+func init() {
+	runCmd.Flags().StringP("context", "c", "", "Why you made this change (optional)")
+	runCmd.Flags().BoolP("smart", "s", false, "Force smart grouping mode")
+	runCmd.Flags().Bool("no-smart", false, "Disable smart mode even on large diffs")
+}
+
+func runCmdHandler(cmd *cobra.Command, _ []string) {
+	// load and validate config
+	if !config.Exists() {
+		color.Red("Config not found — run `gommit init` first.")
+		return
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		color.Red("Error loading config: %v", err)
+		return
+	}
+
+	provider := ai.GetProvider(cfg.Provider, cfg.APIKey, cfg.Model, cfg.CommitStyle, cfg.CustomPrompt)
+	if provider == nil {
+		color.Red("Error: could not initialise AI provider.")
+		return
+	}
+
+	// determine mode: explicit flags first, then auto-detection
+	smart, _ := cmd.Flags().GetBool("smart")
+	noSmart, _ := cmd.Flags().GetBool("no-smart")
+
+	if !noSmart && !smart {
+		files, _ := grouping.GetStagedFiles()
+		if shouldActivateSmart(files) {
+			color.Yellow("ℹ️  Large diff detected (%d files). Activating smart grouping…\n", len(files))
+			smart = true
+		}
+	}
+
+	if smart {
+		if err := RunSmart(provider); err != nil {
+			color.Red("Error: %v", err)
+		}
+		return
+	}
+
+	runRegularMode(provider, cmd)
+}
+
+func runRegularMode(provider ai.Provider, cmd *cobra.Command) {
+	reader := bufio.NewReader(os.Stdin)
+
+	// get staged diff
+	diff, err := git.Diff()
+	if err != nil {
+		color.Red("Error getting diff: %v", err)
+		return
+	}
+	if strings.TrimSpace(diff) == "" {
+		color.Yellow("Nothing staged. Use `git add` first.")
+		return
+	}
+
+	// sensitive data check
+	if containsSensitiveData(diff) {
+		color.Yellow("⚠  Sensitive data detected in diff (passwords, keys, tokens).")
+		color.Yellow("   This diff will be sent to: %s", provider)
+		fmt.Print("   Continue anyway? (y/n): ")
+		confirm := readLineFrom(reader)
+		if confirm != "y" {
+			color.Yellow("Commit cancelled.")
+			return
+		}
+	}
+
+	// optional context
+	contextInput, _ := cmd.Flags().GetString("context")
+	if contextInput == "" {
+		color.White("Why did you make this change? (optional, Enter to skip): ")
+		contextInput = readLineFrom(reader)
+	}
+
+	// generate messages
+	messages, err := provider.GenerateCommitMessage(diff, contextInput, "")
+	if err != nil {
+		color.Red("Error generating commit messages: %v", err)
+		return
+	}
+
+	printNumberedMessages(messages)
+
+	color.White("Select (1/2/3), [r] regenerate, [e] edit, [n] cancel: ")
+	choice := readLineFrom(reader)
+
+	switch choice {
+	case "1", "2", "3":
+		commitByIndex(messages, choice)
+
+	case "r":
+		handleRegularRegenerate(provider, diff, contextInput, messages, reader)
+
+	case "e":
+		handleRegularEdit(messages, reader)
+
+	case "n":
+		color.Yellow("Commit cancelled.")
+
+	default:
+		color.Red("Invalid choice. Commit aborted.")
+	}
+}
+
+func handleRegularRegenerate(
+	provider ai.Provider,
+	diff, contextInput string,
+	previousMessages []string,
+	reader *bufio.Reader,
+) {
+	color.Cyan("Regenerating commit messages…")
+
+	newMessages, err := provider.GenerateCommitMessage(diff, contextInput, previousMessages[0])
+	if err != nil {
+		color.Red("Error generating commit messages: %v", err)
+		return
+	}
+	printNumberedMessages(newMessages)
+
+	color.White("Select (1/2/3), [e] edit, [n] cancel: ")
+	choice := readLineFrom(reader)
+
+	switch choice {
+	case "1", "2", "3":
+		commitByIndex(newMessages, choice)
+	case "e":
+		handleRegularEdit(newMessages, reader)
+	case "n":
+		color.Yellow("Commit cancelled.")
+	default:
+		color.Red("Invalid choice.")
+	}
+}
+
+func handleRegularEdit(messages []string, reader *bufio.Reader) {
+	color.White("Which message to edit? (1/2/3): ")
+	choice := readLineFrom(reader)
+
+	idx, err := strconv.Atoi(choice)
+	if err != nil || idx < 1 || idx > len(messages) {
+		color.Red("❌ Invalid choice.")
+		return
+	}
+	selected := messages[idx-1]
+
+	// use readline for prefilled editing
+	rl, err := readline.New("> ")
+	if err != nil {
+		color.Red("Error starting editor: %v", err)
+		return
+	}
+	defer rl.Close()
+
+	rl.WriteStdin([]byte(selected))
+	color.White("Edit message:")
+	edited, _ := rl.Readline()
+	edited = strings.TrimSpace(edited)
+	if edited == "" {
+		edited = selected
+	}
+
+	if err := git.Commit(edited); err != nil {
+		color.Red("Error committing: %v", err)
+		return
+	}
+	color.Green("✅ Committed: %s", edited)
+}
+
+// commitByIndex commits the message at the 1-based index string.
+func commitByIndex(messages []string, choice string) {
+	idx, err := strconv.Atoi(choice)
+	if err != nil || idx < 1 || idx > len(messages) {
+		color.Red("❌ Invalid selection.")
+		return
+	}
+	selected := messages[idx-1]
+	if err := git.Commit(selected); err != nil {
+		color.Red("Error committing: %v", err)
+		return
+	}
+	color.Green("✅ Committed: %s", selected)
+}
+
+// printNumberedMessages prints the numbered list of suggestions.
+func printNumberedMessages(messages []string) {
+	fmt.Println()
+	for i, msg := range messages {
+		color.Cyan("  %d. %s", i+1, msg)
+	}
+	fmt.Println()
+}
+
+func readLineFrom(r *bufio.Reader) string {
+	line, _ := r.ReadString('\n')
+	return strings.TrimSpace(line)
+}
+
+// shouldActivateSmart returns true if the staged diff is large enough to
+// benefit from smart grouping mode.
+func shouldActivateSmart(files []*grouping.FileInfo) bool {
+	if len(files) >= smartMinFiles {
+		return true
+	}
+	totalLines := 0
+	for _, f := range files {
+		totalLines += f.Lines
+	}
+	return totalLines >= smartMinLines
+}
+
+// containsSensitiveData scans only the added (+) lines in a diff for
+// patterns that look like secrets, keys, or tokens.
 func containsSensitiveData(diff string) bool {
-	// only scan added lines
-	addedLines := []string{}
+	var addedLines []string
 	for _, line := range strings.Split(diff, "\n") {
 		if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
 			addedLines = append(addedLines, line)
@@ -232,50 +256,18 @@ func containsSensitiveData(diff string) bool {
 	addedContent := strings.Join(addedLines, "\n")
 
 	patterns := []string{
-		// assignment patterns with actual values
 		`(?i)(password|passwd|secret|api_key|apikey|access_key)\s*[:=]\s*["']?[a-zA-Z0-9+/]{8,}`,
-		// known API key formats
 		`sk-[a-zA-Z0-9]{20,}`,
 		`gsk_[a-zA-Z0-9]{20,}`,
 		`AIza[a-zA-Z0-9]{20,}`,
 		`sk-ant-[a-zA-Z0-9]{20,}`,
-		// bearer tokens
 		`(?i)Bearer\s+[a-zA-Z0-9\-._~+/]{20,}`,
-		// private keys
 		`-----BEGIN (RSA |EC )?PRIVATE KEY-----`,
 	}
-
-	for _, pattern := range patterns {
-		matched, _ := regexp.MatchString(pattern, addedContent)
-		if matched {
+	for _, p := range patterns {
+		if matched, _ := regexp.MatchString(p, addedContent); matched {
 			return true
 		}
 	}
 	return false
-}
-
-// shouldActivateSmart checks if diff is large enough to warrant smart grouping
-func shouldActivateSmart(files []*grouping.FileInfo) bool {
-	// Thresholds for auto-activation
-	const (
-		minFilesForSmart = 5    // 5+ files
-		minLinesForSmart = 1500 // 1500+ total lines changed
-	)
-
-	if len(files) >= minFilesForSmart {
-		return true
-	}
-
-	totalLines := 0
-	for _, f := range files {
-		totalLines += f.Lines
-	}
-
-	return totalLines >= minLinesForSmart
-}
-
-func init() {
-	runCmd.Flags().StringP("context", "c", "", "Context for why changes were made")
-	runCmd.Flags().BoolP("smart", "s", false, "Force smart grouping mode (auto-group files by type)")
-	runCmd.Flags().Bool("no-smart", false, "Disable smart mode even if diff is large")
 }
