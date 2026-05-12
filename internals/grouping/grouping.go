@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+
 	"github.com/jagadeesh-2006/gommit/internals/git"
 )
 
@@ -96,7 +97,7 @@ func parseNumStatOutput(output string) map[string]LineStats {
 			continue
 		}
 		result[parts[2]] = LineStats{
-			Added:   parseNumStatFieldLocal(parts[0]),  
+			Added:   parseNumStatFieldLocal(parts[0]),
 			Removed: parseNumStatFieldLocal(parts[1]),
 		}
 	}
@@ -276,13 +277,13 @@ func buildGroupPrompt(group FileGroup, files []*FileInfo, stat, compressedDiff s
 	fileList := buildFileList(files)
 
 	rules := `Rules:
-	- Return ONLY 3 messages in this exact format:
-	1. <message>
-	2. <message>
-	3. <message>
-	- Nothing else. No explanations. No preamble.
-	- Each under 100 characters
-	- Each from a completely different angle (what changed / why / impact)`
+- Return ONLY 3 messages in this exact format:
+1. <message>
+2. <message>
+3. <message>
+- Nothing else. No explanations. No preamble.
+- Each under 100 characters
+- Each from a completely different angle (what changed / why / impact)`
 
 	diffSection := fmt.Sprintf("Diff:\n===START===\n%s\n===END===", compressedDiff)
 
@@ -290,31 +291,31 @@ func buildGroupPrompt(group FileGroup, files []*FileInfo, stat, compressedDiff s
 	case GroupCode:
 		return fmt.Sprintf(`You are a git commit message expert.
 
-	Summary: %s
+Summary: %s
 
-	Files changed:
-	%s
-	%s
+Files changed:
+%s
+%s
 
-	Use conventional commit format: feat / fix / refactor / perf / style
-	The diff shows function signatures and logic changes. Focus on WHAT changed
-	functionally and WHY — not the file name.
+Use conventional commit format: feat / fix / refactor / perf / style
+The diff shows function signatures and logic changes. Focus on WHAT changed
+functionally and WHY — not the file name.
 
-	%s`, stat, fileList, rules, diffSection)
+%s`, stat, fileList, rules, diffSection)
 
 	case GroupDocs:
 		return fmt.Sprintf(`You are a git commit message expert.
 
-	Summary: %s
+Summary: %s
 
-	Files changed:
-	%s
-	%s
+Files changed:
+%s
+%s
 
-	Always use "docs:" prefix.
-	Focus on what documentation was updated and why.
+Always use "docs:" prefix.
+Focus on what documentation was updated and why.
 
-	%s`, stat, fileList, rules, diffSection)
+%s`, stat, fileList, rules, diffSection)
 
 	case GroupConfig:
 		return fmt.Sprintf(`You are a git commit message expert.
