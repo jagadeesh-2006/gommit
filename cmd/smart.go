@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chzyer/readline"
 	"github.com/fatih/color"
 	"github.com/jagadeesh-2006/gommit/internals/ai"
 	"github.com/jagadeesh-2006/gommit/internals/git"
@@ -244,12 +245,20 @@ func (sr *SmartRunner) handleEdit(messages []string, filePaths []string) (int, e
 	}
 
 	selected := messages[idx-1]
-	color.White("Current:")
-	color.Cyan("  %s", selected)
-	color.White("New message (press Enter to keep current): ")
-	edited := sr.readLine()
 
-	if strings.TrimSpace(edited) == "" {
+	// use readline for prefilled editing
+	rl, err := readline.New("> ")
+	if err != nil {
+		color.Red("Error starting editor: %v", err)
+		return 0, nil
+	}
+	defer rl.Close()
+
+	rl.WriteStdin([]byte(selected))
+	color.White("Edit message:")
+	edited, _ := rl.Readline()
+	edited = strings.TrimSpace(edited)
+	if edited == "" {
 		edited = selected
 	}
 
@@ -272,7 +281,7 @@ func (sr *SmartRunner) handleRegenerate(group grouping.FileGroup, files []*group
 	// retry
 	var messages []string
 	for attempt := 1; attempt <= 3; attempt++ {
-		messages, err = sr.provider.GenerateCommitMessage(compressedDiff,"", "", prompt)
+		messages, err = sr.provider.GenerateCommitMessage(compressedDiff, "", "", prompt)
 		if err == nil {
 			break
 		}
