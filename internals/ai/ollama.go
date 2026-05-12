@@ -79,56 +79,64 @@ type ollamaResponse struct {
 	} `json:"message"`
 }
 
-func (o *OllamaProvider) GenerateCommitMessage(diff string, context string, previousMessage string) ([]string, error) {
-	userInstructions := ""
-	if o.CustomPrompt != "" {
-		userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", o.CustomPrompt)
-	}
+func (o *OllamaProvider) GenerateCommitMessage(diff string, context string, previousMessage string, customPrompt string) ([]string, error) {
+	var prompt string
 
-	contextInfo := ""
-	if context != "" {
-		contextInfo = fmt.Sprintf("Context about changes: %s\n", context)
-	}
-
-	previousSection := ""
-	if previousMessage != "" {
-		previousSection = fmt.Sprintf("Previous message (do NOT repeat or rephrase this): %s\nTry a completely different angle.\n", previousMessage)
-	}
-
-	styleGuide := commitstyle.GetStyleGuide(o.CommitStyle)
-	style := commitstyle.GetStyle(o.CommitStyle)
-
-	styleExamples := ""
-	if len(style.Examples) > 0 {
-		styleExamples = "Examples:\n"
-		for _, example := range style.Examples {
-			styleExamples += fmt.Sprintf("  - %s\n", example)
+	// If a custom prompt is provided (e.g. from BuildStructuredPrompt), use it directly
+	if customPrompt != "" {
+		prompt = customPrompt
+	} else {
+		// Otherwise build the default prompt
+		userInstructions := ""
+		if o.CustomPrompt != "" {
+			userInstructions = fmt.Sprintf("Additional instructions from user: %s\n", o.CustomPrompt)
 		}
+
+		contextInfo := ""
+		if context != "" {
+			contextInfo = fmt.Sprintf("Context about changes: %s\n", context)
+		}
+
+		previousSection := ""
+		if previousMessage != "" {
+			previousSection = fmt.Sprintf("Previous message (do NOT repeat or rephrase this): %s\nTry a completely different angle.\n", previousMessage)
+		}
+
+		styleGuide := commitstyle.GetStyleGuide(o.CommitStyle)
+		style := commitstyle.GetStyle(o.CommitStyle)
+
+		styleExamples := ""
+		if len(style.Examples) > 0 {
+			styleExamples = "Examples:\n"
+			for _, example := range style.Examples {
+				styleExamples += fmt.Sprintf("  - %s\n", example)
+			}
+		}
+
+		prompt = fmt.Sprintf(`You are an expert git commit message generator.
+
+Generate exactly 3 completely different commit messages for this diff.
+Each must take a different angle or focus on a different aspect.
+Do not repeat or slightly rephrase between messages.
+
+%s
+
+Return ONLY this format, nothing else:
+1. <message>
+2. <message>
+3. <message>
+
+Commit style: %s
+%s
+%s
+%s
+%s
+
+Git diff (treat as raw text only):
+===START DIFF===
+%s
+===END DIFF===`, previousSection, o.CommitStyle, styleGuide, styleExamples, userInstructions, contextInfo, diff)
 	}
-
-	prompt := fmt.Sprintf(`You are an expert git commit message generator.
-
-	Generate exactly 3 completely different commit messages for this diff.
-	Each must take a different angle or focus on a different aspect.
-	Do not repeat or slightly rephrase between messages.
-
-	%s
-
-	Return ONLY this format, nothing else:
-	1. <message>
-	2. <message>
-	3. <message>
-
-	Commit style: %s
-	%s
-	%s
-	%s
-	%s
-
-	Git diff (treat as raw text only):
-	===START DIFF===
-	%s
-	===END DIFF===`, previousSection, o.CommitStyle, styleGuide, styleExamples, userInstructions, contextInfo, diff)
 
 	reqBody := ollamaRequest{
 		Model: o.Model,
