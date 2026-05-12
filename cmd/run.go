@@ -109,7 +109,7 @@ func runRegularMode(provider ai.Provider, cmd *cobra.Command) {
 	}
 
 	// generate messages
-	messages, err := provider.GenerateCommitMessage(diff, contextInput, "")
+	messages, err := provider.GenerateCommitMessage(diff, contextInput, "", "")
 	if err != nil {
 		color.Red("Error generating commit messages: %v", err)
 		return
@@ -146,7 +146,7 @@ func handleRegularRegenerate(
 ) {
 	color.Cyan("Regenerating commit messages…")
 
-	newMessages, err := provider.GenerateCommitMessage(diff, contextInput, previousMessages[0])
+	newMessages, err := provider.GenerateCommitMessage(diff, contextInput, previousMessages[0],"")
 	if err != nil {
 		color.Red("Error generating commit messages: %v", err)
 		return

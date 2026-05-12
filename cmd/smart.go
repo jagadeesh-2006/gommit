@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	"github.com/fatih/color"
 	"github.com/jagadeesh-2006/gommit/internals/ai"
 	"github.com/jagadeesh-2006/gommit/internals/git"
@@ -162,7 +163,7 @@ func (sr *SmartRunner) processSubGroup(
 	// --- generate with retry ---
 	var messages []string
 	for attempt := 1; attempt <= 3; attempt++ {
-		messages, err = sr.provider.GenerateCommitMessage(compressedDiff, "", prompt)
+		messages, err = sr.provider.GenerateCommitMessage(compressedDiff, "", "", prompt)
 		if err == nil {
 			break
 		}
@@ -260,7 +261,7 @@ func (sr *SmartRunner) handleEdit(messages []string, filePaths []string) (int, e
 	return 1, nil
 }
 
-func (sr *SmartRunner) handleRegenerate( group grouping.FileGroup, files []*grouping.FileInfo, filePaths []string, previousMessages []string,) (int, error) {
+func (sr *SmartRunner) handleRegenerate(group grouping.FileGroup, files []*grouping.FileInfo, filePaths []string, previousMessages []string) (int, error) {
 	compressedDiff, prompt, err := grouping.BuildStructuredPrompt(group, files)
 	if err != nil {
 		return 0, fmt.Errorf("rebuilding prompt: %w", err)
@@ -271,7 +272,7 @@ func (sr *SmartRunner) handleRegenerate( group grouping.FileGroup, files []*grou
 	// retry
 	var messages []string
 	for attempt := 1; attempt <= 3; attempt++ {
-		messages, err = sr.provider.GenerateCommitMessage(compressedDiff, "", prompt)
+		messages, err = sr.provider.GenerateCommitMessage(compressedDiff,"", "", prompt)
 		if err == nil {
 			break
 		}
