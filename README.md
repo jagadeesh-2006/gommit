@@ -1,12 +1,11 @@
 <div align="center">
 
 ![demo](assets/demo.png)
-
 # Gommit ⚡
 
-> AI-powered git commit message generator — single binary, no Node required
+AI-powered git commit message generator — single binary, no Node required.
 
-</div>
+> **If gommit saved you time today, a ⭐ helps others find it.** [Give it a star →](https://github.com/jagadeesh-2006/gommit)
 
 ---
 
@@ -154,24 +153,26 @@ Select (1/2/3), [r] regenerate, [e] edit, [n] cancel:
 
 ## Smart Mode — Auto-grouped Commits
 
-When you have many staged files, gommit automatically activates **smart mode** — it groups your files by type and generates a separate, accurate commit message for each group.
+When your staged changes are large or span multiple file types, gommit automatically activates **smart mode**. It classifies your files into groups and generates a separate, accurate commit message for each group — giving you a clean, meaningful git history instead of one bloated commit.
+
+### When smart mode activates automatically
+
+Smart mode kicks in when any of these are true:
+
+- **5+ files** staged with an average of **200+ lines each**
+- **Total diff exceeds 1000 lines** across all files
+- **Multiple file types staged together** — e.g. code + docs + config (3+ files across 2+ groups)
+
+You can also force or disable it:
 
 ```bash
-git add .
-gommit run
-# auto-activates when 5+ files or 1500+ lines staged
+gommit run --smart      # force smart mode
+gommit run -s           # shorthand
+
+gommit run --no-smart   # disable even if thresholds are met
 ```
 
-Or force it manually:
-```bash
-gommit run --smart
-gommit run -s
-```
-
-Disable it:
-```bash
-gommit run --no-smart
-```
+---
 
 ### How it works
 
@@ -181,11 +182,11 @@ Auto-grouped staged files:
   📦 Code    3 file(s), 156 line(s) changed
   ⚙️  Config  1 file(s), 3 line(s) changed
   📄 Docs    2 file(s), 45 line(s) changed
-  🚫 Skip    2 file(s) — lock files ignored
+  🚫 Skip    2 file(s) — lock files ignored automatically
 
 ─── 📦 Code / src/auth ───
-   src/auth/session.go (24 lines)
-   src/auth/middleware.go (12 lines)
+   src/auth/session.go [+24 -8]
+   src/auth/middleware.go [+12 -3]
 
   1. fix(auth): enforce secure flag when SameSite is none
   2. feat(auth): add session expiry validation
@@ -196,7 +197,7 @@ Select (1/2/3), [e]dit, [s]kip, [r]egenerate:
 ✅ fix(auth): enforce secure flag when SameSite is none
 
 ─── ⚙️  Config ───
-   config/app.yaml (3 lines)
+   config/app.yaml [+3 -1]
 
   1. chore(config): increase request timeout to 60s
   2. chore: update connection pool settings
@@ -207,7 +208,7 @@ Select (1/2/3), [e]dit, [s]kip, [r]egenerate:
 ✅ chore(config): increase request timeout to 60s
 
 ─── 📄 Docs ───
-   README.md (45 lines)
+   README.md [+45 -4]
 
   1. docs: update installation and usage instructions
   2. docs(readme): add smart mode documentation
@@ -222,20 +223,37 @@ Select (1/2/3), [e]dit, [s]kip, [r]egenerate:
 ✅ Done. 3 commits created.
 ```
 
+---
+
 ### File grouping
 
-| Group | Files included |
-|---|---|
-| 📦 Code | All source files (.go, .ts, .py, .js, etc.) |
-| ⚙️ Config | .yaml, .yml, .toml, .json, .env, Dockerfile, Makefile |
-| 📄 Docs | .md, .txt, .rst, README, CHANGELOG, LICENSE |
-| 🧪 Test | *_test.go, *.test.ts, *.spec.js, /tests/ |
-| 🔧 CI | .github/, .gitlab-ci, Jenkinsfile, .circleci |
-| 🚫 Skip | package-lock.json, go.sum, yarn.lock, *.min.js |
+| Group | Files included | Commit prefix |
+|---|---|---|
+| 📦 Code | .go, .ts, .py, .js, .rs, .java, etc. | `feat` / `fix` / `refactor` |
+| ⚙️ Config | .yaml, .yml, .toml, .env, Dockerfile, Makefile | `chore` / `build` |
+| 📄 Docs | .md, .rst, README, CHANGELOG, LICENSE | `docs` |
+| 🧪 Test | *_test.go, *.test.ts, *.spec.js, /tests/ | `test` |
+| 🔧 CI | .github/, .gitlab-ci, Jenkinsfile, .circleci | `ci` |
+| 🚫 Skip | package-lock.json, go.sum, yarn.lock, *.min.js | ignored silently |
 
 Code files are further split by directory — files in `src/auth/` and `src/api/` get separate commits automatically.
 
-> **Note:** Smart mode is still being improved. Complex diffs across many files may occasionally produce less accurate messages. Use `[r]egenerate` or `[e]dit` when needed.
+---
+
+### What smart mode does internally
+
+For each group gommit:
+
+1. Fetches only the relevant diff using the right git command per group type
+   - Code files → `git diff -U0` (changed lines only, no surrounding context)
+   - Config files → `git diff --word-diff` (shows only changed values inline)
+2. Extracts function signatures, hunk context, and high-signal logic lines
+3. Scores files by importance — entrypoints and new files rank higher
+4. Packs everything within a token budget — most important files get full detail, rest get a one-liner
+5. Sends one structured prompt per group to the AI
+6. Commits only that group's files — other staged files stay staged for the next group
+
+> **Note:** Smart mode is still being improved. For very complex diffs use `[r]egenerate` or `[e]dit` when needed.
 
 ---
 
@@ -246,6 +264,7 @@ Code files are further split by directory — files in `src/auth/` and `src/api/
 | `gommit init` | `i` | First time setup wizard |
 | `gommit run` | `r` | Generate AI commit message and commit |
 | `gommit run --smart` | `r -s` | Force smart grouping mode |
+| `gommit run --no-smart` | — | Disable smart mode |
 | `gommit config` | `cfg` | View current configuration |
 | `gommit update` | `u` | Update any configuration value |
 | `gommit prompt` | `p` | Set custom prompt instructions |
@@ -264,7 +283,7 @@ gommit init
 ---
 
 ### `gommit run`
-Reads your staged diff, sends to AI, suggests 3 commit messages, and commits on your approval. Auto-activates smart mode for large diffs.
+Reads your staged diff, suggests 3 commit messages, and commits on your approval. Auto-activates smart mode when diff is large or spans multiple file types.
 
 ```bash
 git add .
@@ -472,14 +491,19 @@ rm /usr/local/bin/gommit
 **v0.2.0**
 - 3 commit message suggestions per run
 - Smart regeneration — avoids repeating previous messages
-- Context input — tell gommit why you made the change 
+- Context input — tell gommit why you made the change
 - Commit style package — proper conventional/simple/emoji support
 - Gemini and Ollama provider support
 
-**v0.3.0 (next) — work in progress**
+**v0.3.0 (current) — work in progress**
 - Smart grouping mode — auto-groups staged files by type
 - Separate accurate commit per group (code, config, docs, tests, CI)
-- Structured diff extraction — signal filtering, function context, importance scoring
+- Structured diff extraction — function signatures, hunk context, signal filtering
+- Word diff for config files — shows only changed values
+- Importance scoring — entrypoints and new files ranked first
+- Auto-skip lock files and generated files silently
+- Retry logic on connection errors per group
+- Code files split by directory for more precise commits
 - Still being improved — complex diffs may need manual edit
 
 ---
@@ -491,7 +515,7 @@ rm /usr/local/bin/gommit
 - PR description generator — `gommit pr` generates full pull request descriptions
 - Git hooks integration — runs automatically on every `git commit`
 - Homebrew support — `brew install gommit`
-- Smart mode accuracy improvements — better handling of large mixed diffs
+- Smart mode accuracy improvements
 
 **Have an idea or found a bug?**
 → [Open an issue](https://github.com/jagadeesh-2006/gommit/issues) — all suggestions welcome
