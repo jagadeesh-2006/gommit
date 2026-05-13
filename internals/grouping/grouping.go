@@ -120,78 +120,201 @@ func ClassifyFile(filename string) FileGroup {
 	base := strings.ToLower(filepath.Base(filename))
 	ext := filepath.Ext(lower)
 
-	// Skip: lock files, binaries, minified files, generated files
+	//  1. SKIP 
+	// Lock files
 	skipExact := []string{
-		"package-lock.json", "yarn.lock", "pnpm-lock.yaml",
+		"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb",
 		"go.sum", "go.work.sum", "cargo.lock",
 		"composer.lock", "poetry.lock", "gemfile.lock", "pubspec.lock",
+		"packages.lock.json", "paket.lock",
 	}
 	for _, s := range skipExact {
 		if base == s || strings.HasSuffix(lower, s) {
 			return GroupSkip
 		}
 	}
-	skipSuffix := []string{".min.js", ".min.css", ".pb.go", ".generated.go"}
+
+	// Generated / compiled / minified / binary
+	skipSuffix := []string{
+		".min.js", ".min.css",
+		".pb.go", ".pb.ts", ".pb.js",         // protobuf generated
+		".generated.go", ".generated.ts",
+		"_generated.go", "_generated.ts",
+		".g.dart",                             // Flutter generated
+		"_test.mocks.dart",
+		".freezed.dart",
+		".gr.dart",
+		".pyc", ".pyo", ".pyd",               // Python compiled
+		".class",                              // Java compiled
+		".o", ".a", ".so", ".dylib", ".dll",  // C/C++ compiled
+		".exe", ".bin",
+		".map",                                // source maps
+	}
 	for _, s := range skipSuffix {
 		if strings.HasSuffix(lower, s) {
 			return GroupSkip
 		}
 	}
-	skipDir := []string{"/vendor/", "/node_modules/", "/dist/", "/build/"}
+
+	// Generated directories
+	skipDir := []string{
+		"/vendor/", "/node_modules/",
+		"/dist/", "/build/", "/out/",
+		"/.next/", "/.nuxt/", "/.svelte-kit/",
+		"/__pycache__/", "/.pytest_cache/",
+		"/.gradle/", "/target/",              // Java/Kotlin build
+		"/.dart_tool/",                       // Flutter
+		"/coverage/", "/.nyc_output/",
+		"/storybook-static/",
+	}
 	for _, d := range skipDir {
 		if strings.Contains(lower, d) {
 			return GroupSkip
 		}
 	}
 
-	// Docs
-	docExts := []string{".md", ".rst", ".txt", ".adoc", ".mdx"}
-	for _, d := range docExts {
-		if ext == d {
-			return GroupDocs
-		}
+	// IDE and OS files
+	skipBase := []string{
+		".ds_store", "thumbs.db", "desktop.ini",
+		".swp", ".swo",          // vim
+		"*.orig",                // merge conflicts
 	}
-	docBases := []string{"readme", "changelog", "license", "contributing", "authors", "notice"}
-	for _, d := range docBases {
-		if strings.Contains(base, d) {
-			return GroupDocs
-		}
-	}
-
-	// Config
-	configExts := []string{".yaml", ".yml", ".toml", ".json", ".env", ".ini", ".cfg", ".conf", ".properties", ".xml"}
-	for _, c := range configExts {
-		if ext == c {
-			return GroupConfig
-		}
-	}
-	configBases := []string{"dockerfile", "makefile", ".gitignore", ".dockerignore", ".editorconfig", ".prettierrc", ".eslintrc"}
-	for _, c := range configBases {
-		if strings.Contains(base, c) {
-			return GroupConfig
+	for _, s := range skipBase {
+		if base == s || strings.HasSuffix(base, s) {
+			return GroupSkip
 		}
 	}
 
-	// Test
-	testPatterns := []string{"_test.", ".test.", ".spec.", "/test/", "/tests/", "__tests__", "testdata/"}
-	for _, t := range testPatterns {
-		if strings.Contains(lower, t) {
-			return GroupTest
-		}
+	//  2. CI — before Config (both use .yml/.yaml) 
+	ciPatterns := []string{
+		".github/",
+		".gitlab-ci",
+		"jenkinsfile",
+		".circleci/",
+		".travis.yml",
+		"bitbucket-pipelines",
+		".drone.yml",
+		"azure-pipelines.yml",
+		".buildkite/",
+		"cloudbuild.yaml",
+		"appveyor.yml",
+		".woodpecker.yml",
+		"render.yaml",           // Render.com
+		"fly.toml",              // Fly.io
+		"railway.toml",          // Railway
+		"vercel.json",           // Vercel
+		"netlify.toml",          // Netlify
+		".github/workflows/",
+		".github/actions/",
 	}
-
-	// CI
-	ciPatterns := []string{".github/", ".gitlab-ci", "jenkinsfile", ".circleci", ".travis.yml", "bitbucket-pipelines"}
 	for _, c := range ciPatterns {
 		if strings.Contains(lower, c) {
 			return GroupCI
 		}
 	}
 
-	// Everything else is code
+	//  3. TEST 
+	testPatterns := []string{
+		"_test.",
+		".test.",
+		".spec.",
+		"/test/",
+		"/tests/",
+		"/__tests__/",
+		"/e2e/",
+		"/cypress/",             // Cypress e2e
+		"/playwright/",          // Playwright e2e
+		"cypress.config.",
+		"playwright.config.",
+		"jest.setup.",
+		"vitest.setup.",
+		".stories.",             // Storybook stories
+	}
+	for _, t := range testPatterns {
+		if strings.Contains(lower, t) {
+			return GroupTest
+		}
+	}
+
+	//  4. DOCS 
+	docExts := []string{".md", ".mdx", ".rst", ".adoc", ".tex"}
+	for _, d := range docExts {
+		if ext == d {
+			return GroupDocs
+		}
+	}
+	docBases := []string{
+		"readme", "changelog", "license", "contributing",
+		"authors", "notice", "security", "codeowners",
+		"code_of_conduct", "funding", "support",
+		"history", "credits", "copying",
+	}
+	for _, d := range docBases {
+		if strings.Contains(base, d) {
+			return GroupDocs
+		}
+	}
+
+	//  5. CONFIG 
+	configExts := []string{
+		".yaml", ".yml", ".toml", ".ini",
+		".cfg", ".conf", ".properties",
+		".env",
+	}
+	for _, c := range configExts {
+		if ext == c {
+			return GroupConfig
+		}
+	}
+
+	// Config by base name 
+	configBases := []string{
+		// package managers
+		"package.json", "composer.json", "pyproject.toml",
+		"setup.cfg", "setup.py", "pipfile",
+		"gemfile", "podfile", "pubspec.yaml",
+		// build tools
+		"dockerfile", "makefile", "rakefile", "gruntfile", "gulpfile",
+		".dockerignore", "docker-compose",
+		// formatters and linters
+		".gitignore", ".gitattributes",
+		".editorconfig", ".prettierrc", ".prettierignore",
+		".eslintrc", ".eslintignore",
+		".stylelintrc", ".stylelintignore",
+		".babelrc",
+		// bundlers and frameworks
+		"vite.config", "webpack.config", "rollup.config",
+		"next.config", "nuxt.config", "svelte.config",
+		"astro.config", "remix.config",
+		"tailwind.config", "postcss.config",
+		// test configs
+		"jest.config", "vitest.config",
+		"karma.config",
+		// TypeScript
+		"tsconfig", "jsconfig",
+		// monorepos
+		"nx.json", "turbo.json", "lerna.json",
+		"pnpm-workspace.yaml",
+		// other
+		".nvmrc", ".node-version",       // node version
+		".python-version",               // python version
+		".ruby-version",                 // ruby version
+		".tool-versions",                // asdf
+		"renovate.json",                 // renovate bot
+		".releaserc",                    // semantic release
+		"sonar-project.properties",      // SonarQube
+		"codecov.yml",                   // Codecov
+		".goreleaser.yaml",              // GoReleaser
+	}
+	for _, c := range configBases {
+		if strings.Contains(base, c) {
+			return GroupConfig
+		}
+	}
+
+	// 6. CODE everything else 
 	return GroupCode
 }
-
 // GroupFiles organises a flat list of FileInfo into a GroupedFiles map.
 func GroupFiles(files []*FileInfo) *GroupedFiles {
 	grouped := &GroupedFiles{
