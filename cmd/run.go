@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
 	"github.com/chzyer/readline"
 	"github.com/fatih/color"
 	"github.com/jagadeesh-2006/gommit/internals/ai"
@@ -17,8 +18,9 @@ import (
 )
 
 const (
-	smartMinFiles = 5    // auto-activate if >= this many staged files
-	smartMinLines = 1500 // auto-activate if >= this many total changed lines
+	smartMinFiles      = 5    // auto-activate if >= this many staged files
+	smartMinTotalLines = 1000 // auto-activate if >= this many total changed lines
+	smartMinAvgLines   = 200  // auto-activate if average changed lines per file >= this
 )
 
 // runCmd is the primary command: generate commit messages and commit.
@@ -33,6 +35,47 @@ func init() {
 	runCmd.Flags().StringP("context", "c", "", "Why you made this change (optional)")
 	runCmd.Flags().BoolP("smart", "s", false, "Force smart grouping mode")
 	runCmd.Flags().Bool("no-smart", false, "Disable smart mode even on large diffs")
+}
+
+func shouldActivateSmart(files []*grouping.FileInfo) bool {
+	if len(files) == 0 {
+		return false
+	}
+
+	totalLines := 0
+	nonSkipFiles := 0
+	for _, f := range files {
+		if f.Group != grouping.GroupSkip {
+			nonSkipFiles++
+			totalLines += f.Lines
+		}
+	}
+
+	if nonSkipFiles == 0 {
+		return false
+	}
+
+	avgLines := totalLines / nonSkipFiles
+
+	if nonSkipFiles >= smartMinFiles && avgLines >= smartMinAvgLines {
+		return true
+	}
+
+	if totalLines >= smartMinTotalLines {
+		return true
+	}
+
+	groups := map[grouping.FileGroup]bool{}
+	for _, f := range files {
+		if f.Group != grouping.GroupSkip {
+			groups[f.Group] = true
+		}
+	}
+	if len(groups) >= 2 && nonSkipFiles >= 3 {
+		return true
+	}
+
+	return false
 }
 
 func runCmdHandler(cmd *cobra.Command, _ []string) {
@@ -93,7 +136,7 @@ func runRegularMode(provider ai.Provider, cmd *cobra.Command) {
 	if containsSensitiveData(diff) {
 		color.Yellow("⚠  Sensitive data detected in diff (passwords, keys, tokens).")
 		color.Yellow("   This diff will be sent to: %s", provider)
-		fmt.Print("   Continue anyway? (y/n): ")
+		color.White("   Continue anyway? (y/n): ")
 		confirm := readLineFrom(reader)
 		if confirm != "y" {
 			color.Yellow("Commit cancelled.")
@@ -146,7 +189,7 @@ func handleRegularRegenerate(
 ) {
 	color.Cyan("Regenerating commit messages…")
 
-	newMessages, err := provider.GenerateCommitMessage(diff, contextInput, previousMessages[0],"")
+	newMessages, err := provider.GenerateCommitMessage(diff, contextInput, previousMessages[0], "")
 	if err != nil {
 		color.Red("Error generating commit messages: %v", err)
 		return
@@ -229,19 +272,6 @@ func printNumberedMessages(messages []string) {
 func readLineFrom(r *bufio.Reader) string {
 	line, _ := r.ReadString('\n')
 	return strings.TrimSpace(line)
-}
-
-// shouldActivateSmart returns true if the staged diff is large enough to
-// benefit from smart grouping mode.
-func shouldActivateSmart(files []*grouping.FileInfo) bool {
-	if len(files) >= smartMinFiles {
-		return true
-	}
-	totalLines := 0
-	for _, f := range files {
-		totalLines += f.Lines
-	}
-	return totalLines >= smartMinLines
 }
 
 // containsSensitiveData scans only the added (+) lines in a diff for

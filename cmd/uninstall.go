@@ -12,7 +12,7 @@ var uninstallCmd = &cobra.Command{
 	Aliases: []string{"remove"},
     Short: "Remove gommit configuration",
     Run: func(cmd *cobra.Command, args []string) {
-        fmt.Print("Are you sure you want to remove gommit config? (y/n): ")
+        color.White("Are you sure you want to remove gommit config? (y/n): ")
         var confirm string
         fmt.Scanln(&confirm)
         if confirm != "y" {
