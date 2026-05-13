@@ -73,11 +73,11 @@ var sigPatterns = map[string]*regexp.Regexp{
 		`^[+-]\s*((pub(\(crate\))?\s+)?(async\s+)?fn\s+\w+` +
 			`|(pub(\(crate\))?\s+)?(struct|enum|trait|impl|type)\s+\w+)`),
 	".java": regexp.MustCompile(
-		`^[+-]\s*((public|private|protected|static|final|abstract|\s){1,5}[\w<>\[\]]+\s+\w+\s*\(` +
+		`^[+-]\s*((public|private|protected|static|final|abstract|\s+){1,5}[\w<>\[\]]+\s+\w+\s*\(` +
 			`|(public|private|protected)?\s*(abstract\s+)?(class|interface|enum)\s+\w+)`),
 	".cs": regexp.MustCompile(
 		`^[+-]\s*(public|private|protected|internal|static|virtual|override|abstract|\s){1,5}` +
-			`[\w<>\[\]]+\s+\w+\s*[\(<]`),
+			`[\w<>\[\]]+\s+\w+\s*\(`),
 	".rb": regexp.MustCompile(
 		`^[+-]\s*(def\s+(self\.)?\w+|(class|module)\s+\w+)`),
 	".php": regexp.MustCompile(
@@ -88,33 +88,80 @@ var sigPatterns = map[string]*regexp.Regexp{
 	".swift": regexp.MustCompile(
 		`^[+-]\s*(public|private|internal|open|fileprivate|\s)*` +
 			`(override\s+)?(func|class|struct|enum|protocol|extension)\s+\w+`),
+	".vue": regexp.MustCompile(
+		`^[+-]\s*((export\s+)?(default\s+)?(async\s+)?function\s+\w+` +
+			`|(export\s+)?(const|let)\s+\w+\s*[=:]` +
+			`|defineComponent|defineProps|defineEmits)`),
+
+	".svelte": regexp.MustCompile(
+		`^[+-]\s*((export\s+)?(async\s+)?function\s+\w+` +
+			`|(export\s+)?(const|let)\s+\w+\s*=)`),
+
+	".dart": regexp.MustCompile(
+		`^[+-]\s*((class|mixin|extension|enum)\s+\w+` +
+			`|(Future|void|String|int|bool|Widget|List|Map)\s+\w+\s*\(` +
+			`|\w+\s+\w+\s*\()`),
+
+	".c": regexp.MustCompile(
+		`^[+-]\s*[\w\s\*]+\s+\w+\s*\([^)]*\)\s*\{?`),
+
+	".cpp": regexp.MustCompile(
+		`^[+-]\s*(class|struct|template|namespace|[\w:<>\s\*]+\s+\w+\s*\([^)]*\))`),
+
+	".scala": regexp.MustCompile(
+		`^[+-]\s*((def|val|var|class|object|trait|case\s+class|sealed)\s+\w+)`),
+
+	".ex": regexp.MustCompile(
+		`^[+-]\s*(def\s+\w+|defp\s+\w+|defmodule\s+\w+|defmacro\s+\w+)`),
+
+	".exs": regexp.MustCompile(
+		`^[+-]\s*(def\s+\w+|defp\s+\w+|defmodule\s+\w+)`),
 }
 
 // reHighSignal: lines that carry actual logic and intent — always keep.
 var reHighSignal = regexp.MustCompile(
-	`(?i)(\bif\b|\belse\b|\bswitch\b|\bcase\b|` +
-		`\breturn\b|\bthrow\b|\bpanic\(|\bfatal\b|` +
-		`\berr\b\s*!=?\s*nil|\berrors?\.(New|Wrap|Is|As)\b|fmt\.Errorf|` +
-		`\b(make|append|new)\s*\(|` +
-		`context\.|http\.|time\.|os\.|sql\.|json\.|grpc\.|` +
-		`\bawait\b|\basync\b|\.then\(|\.catch\(|` +
-		`\bchan\b|\bgo\b\s+func|` +
-		`\b(SELECT|INSERT|UPDATE|DELETE|WHERE|JOIN)\b)`,
+    `(?i)(\bif\b|\belse\b|\bswitch\b|\bcase\b|` +
+        `\breturn\b|\bthrow\b|\bpanic\(|\bfatal\b|` +          
+        `\berr\b\s*!=?\s*nil|\berrors?\.(New|Wrap|Is|As)\b|fmt\.Errorf|` +
+        `\b(make|append|new)\s*\(|` +
+        `context\.|http\.|time\.|os\.|sql\.|json\.|grpc\.|` +      
+        `\bawait\b|\basync\b|\.then\(|\.catch\(|\.finally\(|` +   // async control flow
+        `\bchan\b|\bgo\b\s+func|` +
+        `\bdefer\b|` +                                            //  defer —  in Go
+        `\byield\b|\byield\*\b|` +                               //  yield — Python/JS generators
+        `\braise\b|` +                                           //  raise — Python exceptions
+        `\bassert\b|` +                                          //  assert — testing/validation
+        `\b(SELECT|INSERT|UPDATE|DELETE|WHERE|JOIN|FROM)\b|` +   // already have most
+        `\btry\b|\bcatch\b|\bfinally\b|` +                      //  try/catch
+        `useState\(|useEffect\(|useCallback\(|useMemo\(|` +     // React hooks
+        `\.subscribe\(|\.pipe\(|\.map\(|\.filter\(|` +          // RxJS/streams
+        `redis\.|kafka\.|rabbit\.|nats\.)`,                      // message queues/cache
 )
 
 // reMediumSignal: declarations and imports — useful context, keep when there's room.
 var reMediumSignal = regexp.MustCompile(
-	`(?i)(\bimport\b|\brequire\(|\bfrom\b\s+['"]|` +
-		`\bconst\b|\blet\b|\bvar\b|:=|` +
-		`\btype\b\s+\w+|\binterface\b|\bstruct\b\s*\{|` +
-		`\bfunc\b|\bdef\b|\bclass\b|\bfn\b)`,
+    `(?i)(\bimport\b|\brequire\(|\bfrom\b\s+['"]|` +
+        `\bconst\b|\blet\b|\bvar\b|:=|` +      
+        `\btype\b\s+\w+|\binterface\b|\bstruct\b\s*\{|` +
+        `\bfunc\b|\bdef\b|\bclass\b|\bfn\b|` +
+        `\benum\b|` +                        //  enum
+        `\bprotocol\b|` +                    //  Swift protocol
+        `\btrait\b|` +                       //  Rust/PHP trait
+        `\bimpl\b|` +                        //  Rust impl
+        `\bextension\b|` +                   //  Swift/Dart extension
+        `\bdecorator\b|@\w+\()`,             //  decorators — Python/TS
 )
 
 // reNoise: lines with zero semantic value — always drop.
 var reNoise = regexp.MustCompile(
-	`^\s*$` +
-		`|^\s*[{}()\[\]]\s*$` +
-		`|^\s*[{}()\[\],;]\s*(\/\/.*|#.*)?$`,
+    `^\s*$` +
+        `|^\s*[{}()\[\]]\s*$` +         // lone braces and brackets 
+        `|^\s*[{}()\[\],;]\s*(\/\/.*|#.*)?$` +       
+        `|^\s*\/\/\s*$` +       // empty comment line
+        `|^\s*#\s*$` +          // empty Python/Ruby comment
+        `|^\s*\/\*\s*$` +       // opening block comment
+        `|^\s*\*\/\s*$` +       // closing block comment
+        `|^\s*\*\s*$`,          // middle of block comment
 )
 
 // ---------------------------------------------------------------------------
@@ -354,6 +401,7 @@ func ScoreFile(s FileSummary) float64 {
 		"main.go", "main.py", "index.ts", "index.js", "index.jsx", "index.tsx",
 		"app.go", "app.py", "server.go", "server.ts",
 		"cmd/", "handler", "controller", "router", "routes", "middleware",
+		 "service", "repository", "store", "api/", "core/", "domain/", 
 	}
 	for _, ep := range entrypoints {
 		if strings.Contains(lower, ep) {
