@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"github.com/spf13/cobra"
 	"github.com/fatih/color"
@@ -25,4 +26,10 @@ func init()  {
 	rootCmd.AddCommand(promptCmd)
 	rootCmd.AddCommand(undoCmd)
 	rootCmd.AddCommand(uninstallCmd)
+	defaultHelp := rootCmd.HelpFunc()
+
+    rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+        defaultHelp(cmd, args) 
+        fmt.Println("\n⭐ Star us: https://github.com/jagadeesh-2006/gommit")
+    })
 }
