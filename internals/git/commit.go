@@ -7,10 +7,6 @@ import (
 	"strings"
 )
 
-// ============================================================================
-// MAIN COMMIT OPERATIONS
-// ============================================================================
-
 func Commit(message string) error {
 	cmd := exec.Command("git", "commit", "-m", message)
 	cmd.Stdout = os.Stdout
@@ -78,11 +74,6 @@ func CommitGroupFiles(filePaths []string, message string) error {
 
 	return commitErr
 }
-
-// ============================================================================
-// STAGING OPERATIONS
-// ============================================================================
-
 // StageFiles stages the given files (git add)
 func StageFiles(filePaths []string) error {
 	if len(filePaths) == 0 {
