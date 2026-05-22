@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"github.com/spf13/cobra"
 	"github.com/fatih/color"
+	"github.com/spf13/cobra"
 )
 var rootCmd = &cobra.Command{
 	Use:   "gommit",
@@ -17,7 +17,7 @@ func Execute() {
 	}
 }
 
-func init()  {
+func init(){
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(runCmd)
@@ -28,8 +28,8 @@ func init()  {
 	rootCmd.AddCommand(uninstallCmd)
 	defaultHelp := rootCmd.HelpFunc()
 
-    rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
-        defaultHelp(cmd, args) 
-        fmt.Println("\n⭐ Star us: https://github.com/jagadeesh-2006/gommit")
-    })
+	rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		defaultHelp(cmd, args)
+		fmt.Println("\n⭐ Star us: https://github.com/jagadeesh-2006/gommit")
+	})
 }

@@ -3,9 +3,10 @@
 ![demo](assets/demo.png)
 # Gommit ⚡
 
-AI-powered git commit message generator — single binary, no Node required.
+**AI-powered git commit message generator — single binary, no Node required.**
 
-> **If gommit saved you time today, a ⭐ helps others find it.** [Give it a star →](https://github.com/jagadeesh-2006/gommit)
+> If gommit saved you time today, a ⭐ helps others find it.[Give it a star →](https://github.com/jagadeesh-2006/gommit)
+</div>
 
 ---
 
@@ -483,28 +484,6 @@ del %USERPROFILE%\go\bin\gommit.exe
 # mac/linux
 rm /usr/local/bin/gommit
 ```
-
----
-
-## What's in each version
-
-**v0.2.0**
-- 3 commit message suggestions per run
-- Smart regeneration — avoids repeating previous messages
-- Context input — tell gommit why you made the change
-- Commit style package — proper conventional/simple/emoji support
-- Gemini and Ollama provider support
-
-**v0.3.0 (current) — work in progress**
-- Smart grouping mode — auto-groups staged files by type
-- Separate accurate commit per group (code, config, docs, tests, CI)
-- Structured diff extraction — function signatures, hunk context, signal filtering
-- Word diff for config files — shows only changed values
-- Importance scoring — entrypoints and new files ranked first
-- Auto-skip lock files and generated files silently
-- Retry logic on connection errors per group
-- Code files split by directory for more precise commits
-- Still being improved — complex diffs may need manual edit
 
 ---
 
