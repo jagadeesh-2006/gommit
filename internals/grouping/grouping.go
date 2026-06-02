@@ -88,7 +88,6 @@ func GetStagedFiles() ([]*FileInfo, error) {
 }
 
 // parseNumStatOutput parses `git diff --numstat` output into a map.
-// Called internally by GetStagedFiles.
 func parseNumStatOutput(output string) map[string]LineStats {
 	result := make(map[string]LineStats)
 	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
@@ -105,7 +104,6 @@ func parseNumStatOutput(output string) map[string]LineStats {
 }
 
 // parseNumStatFieldLocal converts a numstat field to int.
-// Binary files show "-" instead of a number; those map to 0.
 func parseNumStatFieldLocal(s string) int {
 	if s == "-" {
 		return 0
@@ -120,8 +118,7 @@ func ClassifyFile(filename string) FileGroup {
 	base := strings.ToLower(filepath.Base(filename))
 	ext := filepath.Ext(lower)
 
-	//  1. SKIP 
-	// Lock files
+	//  1. SKIP
 	skipExact := []string{
 		"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb",
 		"go.sum", "go.work.sum", "cargo.lock",
@@ -134,21 +131,20 @@ func ClassifyFile(filename string) FileGroup {
 		}
 	}
 
-	// Generated / compiled / minified / binary
 	skipSuffix := []string{
 		".min.js", ".min.css",
-		".pb.go", ".pb.ts", ".pb.js",         // protobuf generated
+		".pb.go", ".pb.ts", ".pb.js",
 		".generated.go", ".generated.ts",
 		"_generated.go", "_generated.ts",
-		".g.dart",                             // Flutter generated
+		".g.dart",
 		"_test.mocks.dart",
 		".freezed.dart",
 		".gr.dart",
-		".pyc", ".pyo", ".pyd",               // Python compiled
-		".class",                              // Java compiled
-		".o", ".a", ".so", ".dylib", ".dll",  // C/C++ compiled
+		".pyc", ".pyo", ".pyd",
+		".class",
+		".o", ".a", ".so", ".dylib", ".dll",
 		".exe", ".bin",
-		".map",                                // source maps
+		".map",
 	}
 	for _, s := range skipSuffix {
 		if strings.HasSuffix(lower, s) {
@@ -156,14 +152,13 @@ func ClassifyFile(filename string) FileGroup {
 		}
 	}
 
-	// Generated directories
 	skipDir := []string{
 		"/vendor/", "/node_modules/",
 		"/dist/", "/build/", "/out/",
 		"/.next/", "/.nuxt/", "/.svelte-kit/",
 		"/__pycache__/", "/.pytest_cache/",
-		"/.gradle/", "/target/",              // Java/Kotlin build
-		"/.dart_tool/",                       // Flutter
+		"/.gradle/", "/target/",
+		"/.dart_tool/",
 		"/coverage/", "/.nyc_output/",
 		"/storybook-static/",
 	}
@@ -173,11 +168,10 @@ func ClassifyFile(filename string) FileGroup {
 		}
 	}
 
-	// IDE and OS files
 	skipBase := []string{
 		".ds_store", "thumbs.db", "desktop.ini",
-		".swp", ".swo",          // vim
-		"*.orig",                // merge conflicts
+		".swp", ".swo",
+		"*.orig",
 	}
 	for _, s := range skipBase {
 		if base == s || strings.HasSuffix(base, s) {
@@ -185,7 +179,7 @@ func ClassifyFile(filename string) FileGroup {
 		}
 	}
 
-	//  2. CI — before Config (both use .yml/.yaml) 
+	//  2. CI — before Config (both use .yml/.yaml)
 	ciPatterns := []string{
 		".github/",
 		".gitlab-ci",
@@ -199,11 +193,11 @@ func ClassifyFile(filename string) FileGroup {
 		"cloudbuild.yaml",
 		"appveyor.yml",
 		".woodpecker.yml",
-		"render.yaml",           // Render.com
-		"fly.toml",              // Fly.io
-		"railway.toml",          // Railway
-		"vercel.json",           // Vercel
-		"netlify.toml",          // Netlify
+		"render.yaml",
+		"fly.toml",
+		"railway.toml",
+		"vercel.json",
+		"netlify.toml",
 		".github/workflows/",
 		".github/actions/",
 	}
@@ -213,7 +207,7 @@ func ClassifyFile(filename string) FileGroup {
 		}
 	}
 
-	//  3. TEST 
+	//  3. TEST
 	testPatterns := []string{
 		"_test.",
 		".test.",
@@ -222,13 +216,13 @@ func ClassifyFile(filename string) FileGroup {
 		"/tests/",
 		"/__tests__/",
 		"/e2e/",
-		"/cypress/",             // Cypress e2e
-		"/playwright/",          // Playwright e2e
+		"/cypress/",
+		"/playwright/",
 		"cypress.config.",
 		"playwright.config.",
 		"jest.setup.",
 		"vitest.setup.",
-		".stories.",             // Storybook stories
+		".stories.",
 	}
 	for _, t := range testPatterns {
 		if strings.Contains(lower, t) {
@@ -236,7 +230,7 @@ func ClassifyFile(filename string) FileGroup {
 		}
 	}
 
-	//  4. DOCS 
+	//  4. DOCS
 	docExts := []string{".md", ".mdx", ".rst", ".adoc", ".tex"}
 	for _, d := range docExts {
 		if ext == d {
@@ -255,7 +249,7 @@ func ClassifyFile(filename string) FileGroup {
 		}
 	}
 
-	//  5. CONFIG 
+	//  5. CONFIG
 	configExts := []string{
 		".yaml", ".yml", ".toml", ".ini",
 		".cfg", ".conf", ".properties",
@@ -267,44 +261,35 @@ func ClassifyFile(filename string) FileGroup {
 		}
 	}
 
-	// Config by base name 
 	configBases := []string{
-		// package managers
 		"package.json", "composer.json", "pyproject.toml",
 		"setup.cfg", "setup.py", "pipfile",
 		"gemfile", "podfile", "pubspec.yaml",
-		// build tools
 		"dockerfile", "makefile", "rakefile", "gruntfile", "gulpfile",
 		".dockerignore", "docker-compose",
-		// formatters and linters
 		".gitignore", ".gitattributes",
 		".editorconfig", ".prettierrc", ".prettierignore",
 		".eslintrc", ".eslintignore",
 		".stylelintrc", ".stylelintignore",
 		".babelrc",
-		// bundlers and frameworks
 		"vite.config", "webpack.config", "rollup.config",
 		"next.config", "nuxt.config", "svelte.config",
 		"astro.config", "remix.config",
 		"tailwind.config", "postcss.config",
-		// test configs
 		"jest.config", "vitest.config",
 		"karma.config",
-		// TypeScript
 		"tsconfig", "jsconfig",
-		// monorepos
 		"nx.json", "turbo.json", "lerna.json",
 		"pnpm-workspace.yaml",
-		// other
-		".nvmrc", ".node-version",       // node version
-		".python-version",               // python version
-		".ruby-version",                 // ruby version
-		".tool-versions",                // asdf
-		"renovate.json",                 // renovate bot
-		".releaserc",                    // semantic release
-		"sonar-project.properties",      // SonarQube
-		"codecov.yml",                   // Codecov
-		".goreleaser.yaml",              // GoReleaser
+		".nvmrc", ".node-version",
+		".python-version",
+		".ruby-version",
+		".tool-versions",
+		"renovate.json",
+		".releaserc",
+		"sonar-project.properties",
+		"codecov.yml",
+		".goreleaser.yaml",
 	}
 	for _, c := range configBases {
 		if strings.Contains(base, c) {
@@ -312,9 +297,10 @@ func ClassifyFile(filename string) FileGroup {
 		}
 	}
 
-	// 6. CODE everything else 
+	// 6. CODE — everything else
 	return GroupCode
 }
+
 // GroupFiles organises a flat list of FileInfo into a GroupedFiles map.
 func GroupFiles(files []*FileInfo) *GroupedFiles {
 	grouped := &GroupedFiles{
@@ -327,7 +313,6 @@ func GroupFiles(files []*FileInfo) *GroupedFiles {
 }
 
 // SubGroupCodeByDirectory splits a code file group by their parent directory.
-// Returns a map of directory path → files.
 func SubGroupCodeByDirectory(files []*FileInfo) map[string][]*FileInfo {
 	groups := make(map[string][]*FileInfo)
 	for _, file := range files {
@@ -349,7 +334,7 @@ func BuildStructuredPrompt(group FileGroup, files []*FileInfo) (compressedDiff s
 
 	stat, _ := GetShortStat()
 
-	// config files: word-diff gives inline value changes — no further extraction needed
+	// Config files: word-diff gives inline value changes — no further extraction needed.
 	if group == GroupConfig {
 		wordDiff, werr := GetWordDiff(filePaths)
 		if werr != nil {
@@ -360,7 +345,7 @@ func BuildStructuredPrompt(group FileGroup, files []*FileInfo) (compressedDiff s
 		return compressedDiff, prompt, nil
 	}
 
-	// all code-type groups: per-file structured extraction
+	// All code-type groups: per-file structured extraction.
 	lineStats, serr := GetNumStatBatch(filePaths)
 	if serr != nil {
 		return "", "", fmt.Errorf("getting line stats: %w", serr)
@@ -398,93 +383,120 @@ func BuildStructuredPrompt(group FileGroup, files []*FileInfo) (compressedDiff s
 
 func buildGroupPrompt(group FileGroup, files []*FileInfo, stat, compressedDiff string) string {
 	fileList := buildFileList(files)
+	diffSection := fmt.Sprintf("Diff:\n===START===\n%s\n===END===", compressedDiff)
 
-	rules := `Rules:
-- Return ONLY 3 messages in this exact format:
+	// Shared rules block — the KEY change is requiring each message to cover
+	// ALL changes holistically, not one change per message.
+	rules := `Output rules (STRICT):
+- Return EXACTLY 3 commit messages, numbered 1. 2. 3.
+- EACH message must describe ALL of the changes together in a single line — not one change per message.
+- Think of the 3 messages as 3 different ways to say the same thing: what changed overall.
+- Vary the angle: message 1 = what was done, message 2 = why / intent, message 3 = user-facing impact or scope.
+- Every message must be self-contained and make sense without reading the others.
+- Length: 50 to 100 characters. No bullet points. No line breaks inside a message.
+- No preamble, no explanation, no blank lines between messages.
+- Format exactly:
 1. <message>
 2. <message>
-3. <message>
-- Nothing else. No explanations. No preamble.
-- Each under 100 characters
-- Each from a completely different angle (what changed / why / impact)`
-
-	diffSection := fmt.Sprintf("Diff:\n===START===\n%s\n===END===", compressedDiff)
+3. <message>`
 
 	switch group {
 	case GroupCode:
-		return fmt.Sprintf(`You are a git commit message expert.
+		return fmt.Sprintf(`You are an expert at writing git commit messages.
+
+Your job: read ALL the changes in the diff below and write 3 commit messages that each summarise the ENTIRE changeset.
+
+Do NOT write one message per change or per file. Every message must cover all changes together.
 
 Summary: %s
 
 Files changed:
 %s
-%s
+Use conventional commit format (feat / fix / refactor / perf / style / chore).
+Focus on the overall functional purpose of all the changes combined.
+The type prefix should reflect the dominant intent (e.g. if most changes add behaviour, use feat:).
 
-Use conventional commit format: feat / fix / refactor / perf / style
-The diff shows function signatures and logic changes. Focus on WHAT changed
-functionally and WHY — not the file name.
+%s
 
 %s`, stat, fileList, rules, diffSection)
 
 	case GroupDocs:
-		return fmt.Sprintf(`You are a git commit message expert.
+		return fmt.Sprintf(`You are an expert at writing git commit messages.
+
+Your job: read ALL the documentation changes below and write 3 commit messages summarising the ENTIRE changeset.
+
+Do NOT write one message per file or per section updated. Every message covers all changes together.
 
 Summary: %s
 
 Files changed:
 %s
-%s
-
 Always use "docs:" prefix.
-Focus on what documentation was updated and why.
+Focus on what documentation was updated overall and the reason for the update.
+
+%s
 
 %s`, stat, fileList, rules, diffSection)
 
 	case GroupConfig:
-		return fmt.Sprintf(`You are a git commit message expert.
+		return fmt.Sprintf(`You are an expert at writing git commit messages.
+
+Your job: read ALL the config changes below and write 3 commit messages summarising the ENTIRE changeset.
+
+Do NOT write one message per config key or per file. Every message covers all config changes together.
 
 Summary: %s
 
 Files changed:
 %s
-%s
-
 Use "chore:" or "build:" prefix.
-Word diff format: [-old value-]{+new value+} — focus on what config value
-changed, what it affects, and why it was changed.
+Word diff format: [-old value-]{+new value+} shows what changed.
+Focus on the combined effect of all config changes (e.g. "increase timeouts and enable retry logic").
+
+%s
 
 %s`, stat, fileList, rules, diffSection)
 
 	case GroupTest:
-		return fmt.Sprintf(`You are a git commit message expert.
+		return fmt.Sprintf(`You are an expert at writing git commit messages.
+
+Your job: read ALL the test changes below and write 3 commit messages summarising the ENTIRE changeset.
+
+Do NOT write one message per test case or per file. Every message covers all test changes together.
 
 Summary: %s
 
 Files changed:
 %s
-%s
-
 Always use "test:" prefix.
-Focus on what behaviour was tested and what case was added or fixed.
+Focus on what behaviour is now covered across all the test changes combined.
+
+%s
 
 %s`, stat, fileList, rules, diffSection)
 
 	case GroupCI:
-		return fmt.Sprintf(`You are a git commit message expert.
+		return fmt.Sprintf(`You are an expert at writing git commit messages.
+
+Your job: read ALL the CI/CD changes below and write 3 commit messages summarising the ENTIRE changeset.
+
+Do NOT write one message per pipeline step or per file. Every message covers all CI changes together.
 
 Summary: %s
 
 Files changed:
 %s
-%s
-
 Always use "ci:" prefix.
-Focus on what pipeline step or workflow changed and why.
+Focus on the combined effect of all pipeline/workflow changes.
+
+%s
 
 %s`, stat, fileList, rules, diffSection)
 
 	default:
-		return fmt.Sprintf(`Generate 3 conventional commit messages.
+		return fmt.Sprintf(`You are an expert at writing git commit messages.
+
+Write 3 commit messages that each cover ALL of the changes below as a single line cohesive summary.
 
 %s
 
@@ -511,7 +523,6 @@ func buildFileList(files []*FileInfo) string {
 }
 
 // GetDiffForFiles returns the full staged diff for a list of files.
-// Prefer GetDiffForGroup or BuildStructuredPrompt for new code.
 func GetDiffForFiles(filePaths []string) (string, error) {
 	return git.GetDiffDefault(filePaths)
 }
